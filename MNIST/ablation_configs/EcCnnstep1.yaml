@@ -1,26 +1,21 @@
 batch_size: 32
-epochs: 1000
-es_patience: 25
-factor: 0.1
+epochs: 100
+es_patience: 10
 lr: 0.001
-lr_topo: 0.001
 model_params:
   in_channels: 1
   num_classes: 10
-  
   # ECLayr params
-  t_const: True
-  sublevel: False
-  size:
-  - 28
-  - 28
-  interval:
-  - 0
-  - 1
-  steps: 16
-  gtheta_cfg:
-  - 32
-  - 32
+  interval_1:
+  - 0.053
+  - 0.14
+  interval_2:
+  - 0.05
+  - 0.95
+  steps_1: 16
+  steps_2: 16
+  constr: "V"
+  sublevel_1: True
+  sublevel_2: False
   beta: 0.01
-sch_patience: 10
 threshold: 0.001
