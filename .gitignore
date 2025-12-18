@@ -1,26 +1,34 @@
 __pycache__
 
-HAM10000/__pycache__
-HAM10000/generated_data
-HAM10000/HAM10000_images_part_1
-HAM10000/HAM10000_images_part_2
-HAM10000/HAM10000_tensors
-HAM10000/ISIC2018_Task3_Test_Images
-HAM10000/HAM10000_metadata
-HAM10000/ISIC2018_Task3_Test_GroundTruth.csv
-HAM10000/runs
-HAM10000/saved_weights
-HAM10000/test_info
+eclayr.egg-info
 
-KMNIST/raw_data
-KMNIST/generated_data
+eclayr/cubical/cython_eclayr/build
+eclayr/cubical/cython_eclayr/ecc.c
+eclayr/cubical/cython_eclayr/ecc.cpython-310-x86_64-linux-gnu.so
+eclayr/cubical/cython_eclayr/ecc.html
+eclayr/cubical/cython_eclayr/ecc_original.pyx
 
-MNIST/raw_data
-MNIST/generated_data
+eclayr/cubical/cython_sigmoid/build
+eclayr/cubical/cython_sigmoid/ecc_sigmoid.c
+eclayr/cubical/cython_sigmoid/ecc_sigmoid.cpython-310-x86_64-linux-gnu.so
+eclayr/cubical/cython_sigmoid/ecc_sigmoid.html
 
-MNIST-M/testing
-MNIST-M/training
-MNIST-M/generated_data
+MNIST/dataset
+MNIST/ablation_configs
+MNIST/ablation.py
+MNIST/*.sh
 
-wandb
+ORBIT5K/dataset
+ORBIT5K/saved_weights
+ORBIT5K/*.sh
 
+
+MedMNIST
+MedMNIST3D
+
+ph_models/*.sh
+ph_models/test.ipynb
+
+hp_search.py
+hp_search.sh
+requirements.txt
