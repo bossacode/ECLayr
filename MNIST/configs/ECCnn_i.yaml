@@ -9,7 +9,9 @@ model_params:
   interval:
   - 0.053
   - 0.14
+  # - 0.06
+  # - 0.3
   steps: 32
-  constr: "V"
   sublevel: True
+  # topo_out: 16
 threshold: 0.001

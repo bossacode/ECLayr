@@ -12,11 +12,8 @@ model_params:
   interval_2:
   - 0.05
   - 0.95
-  steps_1: 32
-  steps_2: 32
-  constr: "V"
+  steps: 32
   sublevel_1: True
   sublevel_2: False
-  beta: 0.01
-  # beta: 0.02
+  lam: 138
 threshold: 0.001
