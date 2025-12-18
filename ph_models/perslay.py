@@ -6,10 +6,9 @@ import numpy as np
 
 
 class CubicalPerslay(tf.keras.layers.Layer):
-    def __init__(self, interval=[0., 1.], steps=32, constr="V", sublevel=True, k=2,
+    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, k=2, rho=tf.identity,
                  *args, **kwargs):
         super().__init__()
-        self.constr = constr
         self.sublevel = sublevel
         interval = interval if sublevel else [-i for i in reversed(interval)]
         self.t_min, self.t_max = interval
@@ -23,32 +22,20 @@ class CubicalPerslay(tf.keras.layers.Layer):
         phi = prsl.FlatPerslayPhi(np.linspace(self.t_min, self.t_max, steps).astype(np.float32), theta=50.)
         # permutation invariant op
         perm_op = f"top{k}"
-        # postprocessing
-        rho = tf.identity
         self.perslay = prsl.Perslay(weight=weight, phi=phi, perm_op=perm_op, rho=rho)
     
     def call(self, x):
-        """_summary_
-
-        Args:
-            x (_type_): _description_# data: [B, H, W, C]
-            t_const (bool, optional): _description_. Defaults to True.
-            k (int, optional): _description_. Defaults to 2.
-
-        Returns:
-            _type_: _description_
-        """
         batch_size, _, _, num_channels = x.shape
         diag_list = []
         x = x if self.sublevel else -x
         for b in range(batch_size):
             for c in range(num_channels):
-                cub_cpx = gd.CubicalComplex(vertices=x[b, :, :, c]) if self.constr=="V" else gd.CubicalComplex(top_dimensional_cells=x[b, :, :, c])
+                cub_cpx = gd.CubicalComplex(vertices=x[b, :, :, c])
                 diag = cub_cpx.persistence()
                 for dim in range(2):
                     dim_diag = np.array([pair[1] for pair in diag if pair[0] == dim and pair[1][0] > self.t_min and pair[1][1] < self.t_max], dtype=np.float32)
-                    num_hom = len(dim_diag)             # number of homology features in dimension "dim"
-                    if num_hom < self.k:                # concatenate zero arrays if there are less than k homology features
+                    num_hom = len(dim_diag)         # number of homology features in dimension "dim"
+                    if num_hom < self.k:            # concatenate zero arrays if there are less than k homology features
                         if num_hom == 0:
                             dim_diag = np.zeros((self.k, 2), dtype=np.float32) + self.t_min
                         dim_diag = tf.concat((dim_diag, np.zeros((self.k - num_hom, 2), dtype=np.float32) + self.t_min), axis=0)

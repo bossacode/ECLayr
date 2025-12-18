@@ -98,16 +98,11 @@ def test(model, dataloader, loss_fn):
     return avg_loss, accuracy
 
 
+# train and evaluate
 def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
-    train_dl, val_dl, test_dl = set_dl(data_dir, cfg["batch_size"])             # set dataloader
-    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)   # set loss function
-    optim = tf.keras.optimizers.Adam(learning_rate=cfg["lr"])                   # set optimizer 
-    # set learning rate scheduler
-    try:
-        scheduler = ReduceLROnPlateau(cfg["factor"], cfg["sch_patience"], cfg["threshold"])
-    except KeyError:
-        scheduler = None
-        print("No learning rate scheduler.")
+    train_dl, val_dl, test_dl = set_dl(data_dir, cfg["batch_size"]) # set dataloader
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    optim = tf.keras.optimizers.Adam(learning_rate=cfg["lr"])
     es = EarlyStopping(cfg["es_patience"], cfg["threshold"], val_metric=val_metric) # set early stopping
     
     # train
@@ -120,9 +115,6 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
         train_loss, train_acc = train(model, train_dl, loss_fn, optim)
         val_loss, val_acc = test(model, val_dl, loss_fn)
 
-        if scheduler:
-            scheduler.reduce_lr(val_loss, optim)
-
         # early stopping
         stop, improvement = es.stop_training(val_loss, val_acc, i_epoch)
         if use_wandb:
@@ -133,7 +125,6 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
             end = time()
             training_time = end - start
             print(f"\nTraining time: {training_time}\n")
-            # np.savez(weight_path, *models_weights)  # save model weights
             if use_wandb:
                 wandb.log({"training_time": training_time})
                 wandb.log({"best_epoch": es.best_epoch})
@@ -148,17 +139,7 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
         wandb.log({"test":{"loss":test_loss, "accuracy":test_acc}})
 
 
-# def train_test(model, cfg, optim, train_dl, val_dl, test_dl, weight_path, log_metric=False, log_grad=False, val_metric="loss"):
-#     run(model, cfg, optim, train_dl, val_dl, weight_path, log_metric, log_grad, val_metric)
-#     # test
-#     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-#     loaded = np.load(weight_path)
-#     loaded_weights = [loaded[key] for key in loaded.files]
-#     model.set_weights(loaded_weights)
-#     test_loss, test_acc = test(model, test_dl, loss_fn)
-#     if log_metric: wandb.log({"test":{"loss":test_loss, "accuracy":test_acc}})
-
-
+# train and evaluate while logging to wandb
 def run_wandb(model, cfg, data_dir, project=None, group=None, job_type=None, name=None, val_metric="loss"):
     with wandb.init(config=cfg, project=project, group=group, job_type=job_type, name=name):
         cfg = wandb.config

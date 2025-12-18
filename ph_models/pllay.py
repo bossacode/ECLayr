@@ -392,8 +392,7 @@ class PersistenceLandscapeLayer(tf.keras.layers.Layer):
                tseq=[0.5, 0.7, 0.9],
                KK=[0,1], 
                grid_size=[3, 3],
-               dimensions=[0, 1], 
-               constr="V",
+               dimensions=[0, 1],
                dtype='float32',
                name='persistencelandscapelayer', 
                *args, **kwargs):
@@ -403,7 +402,6 @@ class PersistenceLandscapeLayer(tf.keras.layers.Layer):
     self.KK = np.array(KK, dtype=np.int32)
     self.grid_size = grid_size
     self.dimensions = dimensions
-    self.constr = constr
 
   def python_op_diag_landscape(self, fun_value):
     """Python domain function to compute landscape.
@@ -419,10 +417,10 @@ class PersistenceLandscapeLayer(tf.keras.layers.Layer):
     """
     # Use gudhi to compute persistence diagram
     # print('fun_value', fun_value.shape, repr(fun_value))
-    cubCpx = gudhi.CubicalComplex(dimensions=self.grid_size, vertices=fun_value) if self.constr=="V" else gudhi.CubicalComplex(dimensions=self.grid_size, top_dimensional_cells=fun_value)
+    cubCpx = gudhi.CubicalComplex(dimensions=self.grid_size, vertices=fun_value)
     pDiag = cubCpx.persistence(homology_coeff_field=2, min_persistence=0)
     # print('pDiag', pDiag)
-    location = cubCpx.vertices_of_persistence_pairs() if self.constr=="V" else cubCpx.cofaces_of_persistence_pairs()
+    location = cubCpx.vertices_of_persistence_pairs()
     if location[0]:
       locationVstack = [np.vstack(location[0]), np.vstack(location[1])]
     else:
