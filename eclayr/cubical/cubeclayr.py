@@ -66,11 +66,10 @@ class CubECLayr(nn.Module):
         ##################################
         # self.impulse = 1 / (abs(beta) * math.sqrt(math.pi))
         self.impulse = (steps-1) / (interval[1] - interval[0])  # equivalent to setting beta = 2delta_t / sqrt(pi).
-        print(self.impulse)
         ##################################
         self.postprocess = postprocess
         self.func = None
-        
+
     def forward(self, x):
         """
         Args:
