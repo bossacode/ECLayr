@@ -15,13 +15,13 @@ cdef class ECC:
     cdef float t_min, t_max, res, lb, ub, impulse
     cdef const float[:] cell_dims
 
-    def __init__(self, arr_size, interval=[0., 1.], steps=32, impulse=5.):
+    def __init__(self, arr_size, interval=[0., 1.], steps=32, impulse=50.):
         """
         Args:
             arr_size (Iterable[int], optional): (H, W) corresponding to the height and width of input array.
             interval (Iterable[float], optional): Interval of filtration values to be considered. Defaults to [0., 1.].
             steps (int, optional):  Number of discretized points. Defaults to 32.
-            impulse (float, optional): Value used as approximation of dirac delta. Defaults to 5..
+            impulse (float, optional): Approximated value of dirac delta. Defaults to 50.
         """
         self.H, self.W = arr_size
         self.cH, self.cW = [2*i-1 for i in arr_size]    # size of the cubical complex
@@ -29,8 +29,8 @@ cdef class ECC:
         self.t_min, self.t_max = interval
         self.steps = steps
         self.res = (self.t_max-self.t_min) / (steps-1)  # distance between adjacent grid points
-        self.impulse = impulse
         self.lb, self.ub = self.t_min-self.res, self.t_max+self.res # lower and upper bound for not skipping gradient computation during backpropagation
+        self.impulse = impulse
         self.cell_dims = self._set_cell_dims()  # dimension of each cell in the cubical complex
 
     @cython.boundscheck(False)      # turn off bounds-checking for entire function
@@ -85,17 +85,16 @@ cdef class ECC:
                             continue
                         t = self.t_min + t_idx * self.res   # grid point t such that t - res < filt <= t.
                         p_t = (t - filt) / self.res         # (distance between filtration value and grid point t) / resolution
-
                         # vertex
                         if dim == 0:
                             pix = self._vtx2pix(cell)                           # index of the corresponding pixel in flattened original image
                             if 0 < t_idx < self.steps:  # t_min < filt <= t_max
-                                grad_view[b, c, pix, t_idx] -= (self.impulse * (1.-p_t))
-                                grad_view[b, c, pix, t_idx-1] -= (self.impulse * p_t)
+                                grad_view[b, c, pix, t_idx] -= self.impulse * (1.-p_t)
+                                grad_view[b, c, pix, t_idx-1] -= self.impulse * p_t
                             elif t_idx == 0:            # lb < filt <= t_min
-                                grad_view[b, c, pix, t_idx] -= (self.impulse * (1.-p_t))
+                                grad_view[b, c, pix, t_idx] -= self.impulse * (1.-p_t)
                             else:                       # t_max < filt < ub
-                                grad_view[b, c, pix, t_idx-1] -= (self.impulse * p_t)
+                                grad_view[b, c, pix, t_idx-1] -= self.impulse * p_t
                         # edge
                         elif dim == 1:
                             neighbor_vtx = self._find_neighbor_vtx(cell, dim)   # neighbor_vtx points at a C array containing index of 2 neighbor vertices
@@ -106,22 +105,22 @@ cdef class ECC:
                                 for i in range(2):
                                     pix = self._vtx2pix(neighbor_vtx[i])
                                     if 0 < t_idx < self.steps:
-                                        grad_view[b, c, pix, t_idx] += (self.impulse * (1.-p_t) / 2.)
-                                        grad_view[b, c, pix, t_idx-1] += (self.impulse * p_t / 2.)
+                                        grad_view[b, c, pix, t_idx] += self.impulse * (1.-p_t) / 2.
+                                        grad_view[b, c, pix, t_idx-1] += self.impulse * p_t / 2.
                                     elif t_idx == 0:
-                                        grad_view[b, c, pix, t_idx] += (self.impulse * (1.-p_t) / 2.)
+                                        grad_view[b, c, pix, t_idx] += self.impulse * (1.-p_t) / 2.
                                     else:
-                                        grad_view[b, c, pix, t_idx-1] += (self.impulse * p_t / 2.)
+                                        grad_view[b, c, pix, t_idx-1] += self.impulse * p_t / 2.
                             else:
                                 i = 0 if vtx_filt[0] > vtx_filt[1] else 1
                                 pix = self._vtx2pix(neighbor_vtx[i])
                                 if 0 < t_idx < self.steps:
-                                    grad_view[b, c, pix, t_idx] += (self.impulse * (1.-p_t))
-                                    grad_view[b, c, pix, t_idx-1] += (self.impulse * p_t)
+                                    grad_view[b, c, pix, t_idx] += self.impulse * (1.-p_t)
+                                    grad_view[b, c, pix, t_idx-1] += self.impulse * p_t
                                 elif t_idx == 0:
-                                    grad_view[b, c, pix, t_idx] += (self.impulse * (1.-p_t))
+                                    grad_view[b, c, pix, t_idx] += self.impulse * (1.-p_t)
                                 else:
-                                    grad_view[b, c, pix, t_idx-1] += (self.impulse * p_t)
+                                    grad_view[b, c, pix, t_idx-1] += self.impulse * p_t
                             free(neighbor_vtx)
                         # square
                         else:
@@ -133,12 +132,12 @@ cdef class ECC:
                             for i in range(num_max):
                                 pix = self._vtx2pix(vtx[i])
                                 if 0 < t_idx < self.steps:
-                                    grad_view[b, c, pix, t_idx] -= (self.impulse * (1.-p_t) / num_max)
-                                    grad_view[b, c, pix, t_idx-1] -= (self.impulse * p_t / num_max)
+                                    grad_view[b, c, pix, t_idx] -= self.impulse * (1.-p_t) / num_max
+                                    grad_view[b, c, pix, t_idx-1] -= self.impulse * p_t / num_max
                                 elif t_idx == 0:
-                                    grad_view[b, c, pix, t_idx] -= (self.impulse * (1.-p_t) / num_max)
+                                    grad_view[b, c, pix, t_idx] -= self.impulse * (1.-p_t) / num_max
                                 else:
-                                    grad_view[b, c, pix, t_idx-1] -= (self.impulse * p_t / num_max)
+                                    grad_view[b, c, pix, t_idx-1] -= self.impulse * p_t / num_max
                             free(vtx)
                             free(neighbor_vtx)
                 # cumsum
@@ -232,6 +231,22 @@ cdef class ECC:
         cell_dims[:, [i for i in range(self.cW) if i % 2 == 1]] += 1
         cell_dims.setflags(write=False)
         return cell_dims.flatten()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
