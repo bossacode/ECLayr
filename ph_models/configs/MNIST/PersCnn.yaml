@@ -6,10 +6,9 @@ model_params:
   num_classes: 10
   # Perslay params
   interval:
-  - 0.06
-  - 0.3
+  - 0.053
+  - 0.14
   steps: 32
-  constr: "V"
   sublevel: True
   k: 2
 threshold: 0.001
