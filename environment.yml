@@ -1,0 +1,15 @@
+name: eclayr
+channels:
+  - pytorch
+  - defaults
+  - conda-forge
+dependencies:
+  - cython=3.0.10
+  - gudhi=3.8.0
+  - matplotlib=3.8.4
+  - python=3.10.13
+  - scikit-learn=1.4.2
+  - tensorflow=2.12.0
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - wandb=0.16.6
