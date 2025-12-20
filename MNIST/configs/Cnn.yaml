@@ -1,6 +1,6 @@
 batch_size: 32
 epochs: 100
-es_patience: 10
+es_patience: 5
 lr: 0.001
 model_params:
   in_channels: 1

@@ -1,6 +1,6 @@
 batch_size: 32
 epochs: 100
-es_patience: 10
+es_patience: 5
 lr: 0.001
 model_params:
   in_channels: 1
@@ -11,7 +11,7 @@ model_params:
   - 0.14
   # - 0.06
   # - 0.3
-  steps: 32
+  steps: 16
   topo_out: 32
   sublevel: True
 threshold: 0.001
