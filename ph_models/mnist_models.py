@@ -31,7 +31,7 @@ class Cnn(tf.keras.Model):
 class PersCnn(Cnn):
     def __init__(self, num_classes=10, *args, **kwargs):
         super().__init__()
-        self.perslay = CubicalPerslay(rho=Dense(kwargs["steps"], activation='relu'), *args, **kwargs)
+        self.perslay = CubicalPerslay(rho=Dense(kwargs["topo_out"], activation='relu'), *args, **kwargs)
         self.fc = Sequential([
             Dense(64, activation='relu'),
             Dense(num_classes)
@@ -54,7 +54,7 @@ class PLCnn_i(Cnn):
         interval = interval if self.sublevel else [-i for i in reversed(interval)]
         tseq = np.linspace(*interval, kwargs["steps"])
         self.pllay = PersistenceLandscapeLayer(tseq=tseq ,*args, **kwargs)
-        self.gtheta = Dense(kwargs["steps"], activation='relu') # postprocessing layer
+        self.gtheta = Dense(kwargs["topo_out"], activation='relu') # postprocessing layer
         self.fc = Sequential([
             Dense(64, activation='relu'),
             Dense(num_classes)
@@ -82,9 +82,9 @@ class PLCnn(Cnn):
         tseq_2 = np.linspace(*interval_2, kwargs["steps"])
         
         self.pllay_1 = PersistenceLandscapeLayer(tseq=tseq_1, *args, **kwargs)
-        self.gtheta_1 = Dense(kwargs["steps"], activation='relu')
+        self.gtheta_1 = Dense(kwargs["topo_out"], activation='relu')
         self.pllay_2 = PersistenceLandscapeLayer(tseq=tseq_2, *args, **kwargs)
-        self.gtheta_2 = Dense(kwargs["steps"], activation='relu')
+        self.gtheta_2 = Dense(kwargs["topo_out"], activation='relu')
         self.fc = Sequential([
             Dense(64, activation='relu'),
             Dense(num_classes)
