@@ -13,6 +13,7 @@ model_params:
   - 0.05
   - 0.95
   steps: 32
+  topo_out: 32
   sublevel_1: True
   sublevel_2: False
   # beta: 0.01
