@@ -9,11 +9,12 @@ from eclayr.cubical._decc.decc import DECC, DECC3d
 
 class ECCwrapper(Function):
     @staticmethod
-    def forward(ctx, x, func):
+    def forward(ctx, x, func, device):
         """
         Args:
             x (tensor of shape (B, C, H, W)): Batch of 2D input images.
             func (function or method): Function that computes the Euler characteristic curves (and gradients if necessary).
+            device (str or torch.device): Device to which the output (and gradient) will be moved.
 
         Returns:
             ecc (tensor of shape (B, C, steps)): Euler characteristic curves for each image and channel.
@@ -21,9 +22,9 @@ class ECCwrapper(Function):
         backprop = x.requires_grad
         ecc, grad = func(x.cpu().numpy(), backprop)
         if backprop:
-            ctx.save_for_backward(torch.from_numpy(grad).to(x.device))
+            ctx.save_for_backward(torch.from_numpy(grad).to(device))
             ctx.input_shape = x.shape
-        return torch.from_numpy(ecc).to(x.device)
+        return torch.from_numpy(ecc).to(device)
     
     @staticmethod
     @once_differentiable
@@ -40,13 +41,12 @@ class ECCwrapper(Function):
             grad_local, = ctx.saved_tensors                                     # shape: (B, C, H*W, steps)
             grad_in = torch.einsum("...ij,...j->...i", grad_local, grad_out)    # shape: (B, C, H*W)
             grad_in = grad_in.view(*ctx.input_shape)                            # shape: (B, C, H, W)
-        return grad_in, None
+        return grad_in, None, None
 
 
 class CubECLayr(nn.Module):
-    def __init__(self, interval=[0., 1.], steps=32, sublevel=True,
-                # beta=0.1,
-                postprocess=nn.Identity(), *args, **kwargs):
+    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, beta=0.1, postprocess=nn.Identity(), device="cpu",
+                *args, **kwargs):
         """
         Args:            
             interval (Iterable[float], optional): Interval of filtration values to be considered. Defaults to [0., 1.].
@@ -54,6 +54,7 @@ class CubECLayr(nn.Module):
             sublevel (bool, optional): Whether to use sublevel set filtration. If False, superlevel set filtration will be used. Defaults to True.
             beta (float, optional): Controls the magnitude of impulse that approximates the dirac delta function used for backpropagation. Smaller values yield higher impulse. Defaults to 0.1.
             postprocess (nn.Module, optional): Postprocessing layer. Defaults to nn.Identity().
+            device (str or torch.device): Device to which the output (and gradient) will be moved. Defaults to "cpu".
         """
         assert len(interval) == 2, "Interval must consist of two values."
         assert interval[1] > interval[0], "End point of the interval must be larger than the starting point."
@@ -63,11 +64,10 @@ class CubECLayr(nn.Module):
         self.interval = interval if sublevel else [-i for i in reversed(interval)] # change interval when superlevel set filtration is used
         self.steps = steps
         self.sublevel = sublevel
-        ##################################
-        # self.impulse = 1 / (abs(beta) * math.sqrt(math.pi))
-        self.impulse = (steps-1) / (interval[1] - interval[0])  # equivalent to setting beta = 2delta_t / sqrt(pi).
-        ##################################
+        self.impulse = 1 / (abs(beta) * math.sqrt(math.pi))
+        # self.impulse = (steps-1) / (interval[1] - interval[0])  # equivalent to setting beta = 2delta_t / sqrt(pi).
         self.postprocess = postprocess
+        self.device = device
         self.func = None
 
     def forward(self, x):
@@ -88,14 +88,14 @@ class CubECLayr(nn.Module):
             else:
                 raise ValueError("Only 2D and 3D images can be used as input.")
 
-        x = x if self.sublevel else -x          # apply sublevel set filtration on negative data when superlevel set filtration is used
-        ecc = ECCwrapper.apply(x, self.func)    # shape: (B, C, steps)
+        x = x if self.sublevel else -x                      # apply sublevel set filtration on negative data when superlevel set filtration is used
+        ecc = ECCwrapper.apply(x, self.func, self.device)   # shape: (B, C, steps)
         out = self.postprocess(ecc.flatten(1))
         return out
 
 
 class CubDECC(nn.Module):
-    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, lam=200, postprocess=nn.Identity(),
+    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, lam=200, postprocess=nn.Identity(), device="cpu",
                  *args, **kwargs):
         """
         Args:            
@@ -104,6 +104,7 @@ class CubDECC(nn.Module):
             sublevel (bool, optional): Whether to use sublevel set filtration. If False, superlevel set filtration will be used. Defaults to True.
             lam (float, optional): Controls the tightness of sigmoid approximation. Defaults to 200.
             postprocess (nn.Module, optional): Postprocessing layer. Defaults to nn.Identity().
+            device (str or torch.device): Device to which the output (and gradient) will be moved. Defaults to "cpu".
         """
         assert len(interval) == 2, "Interval must consist of two values."
         assert interval[1] > interval[0], "End point of the interval must be larger than the starting point."
@@ -115,6 +116,7 @@ class CubDECC(nn.Module):
         self.sublevel = sublevel
         self.lam = lam
         self.postprocess = postprocess
+        self.device = device
         self.func = None
         
     def forward(self, x):
@@ -135,7 +137,7 @@ class CubDECC(nn.Module):
             else:
                 raise ValueError("Only 2D and 3D images can be used as input.")
 
-        x = x if self.sublevel else -x          # apply sublevel set filtration on negative data when superlevel set filtration is used
-        decc = ECCwrapper.apply(x, self.func)   # shape: (B, C, steps)
+        x = x if self.sublevel else -x                      # apply sublevel set filtration on negative data when superlevel set filtration is used
+        decc = ECCwrapper.apply(x, self.func, self.device)  # shape: (B, C, steps)
         out = self.postprocess(decc.flatten(1))
         return out
