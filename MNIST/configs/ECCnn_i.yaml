@@ -12,6 +12,6 @@ model_params:
   # - 0.06
   # - 0.3
   steps: 32
+  topo_out: 32
   sublevel: True
-  # topo_out: 16
 threshold: 0.001
