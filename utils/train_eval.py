@@ -1,25 +1,76 @@
-import sys
-sys.path.append("../")
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import classification_report
-from time import time
 from copy import deepcopy
+from time import time
 import wandb
-from utils.train_utils import set_dl, EarlyStopping
+
+
+class CustomDataset(Dataset):
+    def __init__(self, file_path):
+        *self.X, self.y = torch.load(file_path, weights_only=True)
+        
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, idx):
+        return *[x[idx] for x in self.X], self.y[idx]
+
+
+def set_dl(data_dir, batch_size):
+    train_ds = CustomDataset(data_dir + "train.pt")
+    train_dl = DataLoader(train_ds, batch_size, shuffle=True)
+
+    val_ds = CustomDataset(data_dir + "val.pt")
+    val_dl = DataLoader(val_ds, batch_size)
+    
+    test_ds = CustomDataset(data_dir + "test.pt")
+    test_dl = DataLoader(test_ds, batch_size)
+    return train_dl, val_dl, test_dl
+
+
+class EarlyStopping:
+    def __init__(self, patience, threshold, val_metric="loss"):
+        """_summary_
+
+        Args:
+            patience (_type_): _description_
+            threshold (_type_): _description_
+            val_metric (str, optional): _description_. Defaults to "loss".
+        """
+        self.patience = patience
+        self.threshold = threshold
+        self.count = 0
+        self.best_loss, self.best_acc, self.best_epoch = float("inf"), 0, None
+        self.val_metic = val_metric
+
+    def stop_training(self, val_loss, val_acc, epoch):
+        stop, improvement = True, True
+        diff = (self.best_loss - val_loss) if self.val_metic == "loss" else (val_acc - self.best_acc)
+        if diff > self.threshold:   # improvement needs to be above threshold 
+            self.count = 0
+            self.best_loss, self.best_acc, self.best_epoch = val_loss, val_acc, epoch
+            return not stop, improvement
+        else:
+            self.count += 1
+            if self.count > self.patience:  # stop training if no improvement for patience + 1 epochs
+                print("-"*30)
+                print(f"Best Epoch: {self.best_epoch}")
+                print(f"Best Validation Accuracy: {(self.best_acc):>0.1f}%")
+                print(f"Best Validation Loss: {self.best_loss:>8f}")
+                print("-"*30)
+                return stop, not improvement
+            return not stop, not improvement
 
 
 def train(model, dataloader, loss_fn, optim, device):
-    """
-    train for 1 epoch
-    """
     data_size = len(dataloader.dataset)
     ma_loss, correct = 0, 0
     model.train()
-    for batch, (x_pc, x, x_dtm, y) in enumerate(dataloader, 1):
-        X, y = (x_pc, x.to(device), x_dtm), y.to(device)
+    for batch, (x, x_dtm, y) in enumerate(dataloader, 1):
+        X, y = (x.to(device), x_dtm), y.to(device)
         y_pred = model(X)
         loss = loss_fn(y_pred, y)
         ma_loss += (loss.item() * len(y))  # bc. loss_fn predicts avg loss
@@ -38,15 +89,13 @@ def train(model, dataloader, loss_fn, optim, device):
 
 
 def test(model, dataloader, loss_fn, device):
-    """
-    """
     y_pred_list, y_true_list = [], []
     data_size = len(dataloader.dataset)
     avg_loss, correct = 0, 0
     model.eval()
     with torch.no_grad():
-        for x_pc, x, x_dtm, y in dataloader:
-            X, y = (x_pc, x.to(device), x_dtm), y.to(device)
+        for x, x_dtm, y in dataloader:
+            X, y = (x.to(device), x_dtm), y.to(device)
             y_pred = model(X)
             loss = loss_fn(y_pred, y)
             avg_loss += (loss.item() * len(y))
@@ -64,18 +113,12 @@ def test(model, dataloader, loss_fn, device):
     return avg_loss, accuracy
 
 
+# train and evaluate
 def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
     train_dl, val_dl, test_dl = set_dl(data_dir, cfg["batch_size"]) # set dataloader
-    loss_fn = nn.CrossEntropyLoss()                 # set loss function
-    optim = Adam(model.parameters(), lr=cfg["lr"])  # set optimizer
-    # set learning rate scheduler
-    try:
-        scheduler = ReduceLROnPlateau(optim, mode="min" if val_metric == "loss" else "max",
-                                      factor=cfg["factor"], patience=cfg["sch_patience"], threshold=cfg["threshold"], verbose=True)
-    except KeyError:
-        scheduler = None
-        print("No learning rate scheduler.")
-    es = EarlyStopping(cfg["es_patience"], cfg["threshold"], val_metric=val_metric) # set early stopping
+    loss_fn = nn.CrossEntropyLoss()
+    optim = Adam(model.parameters(), lr=cfg["lr"])
+    es = EarlyStopping(cfg["es_patience"], cfg["threshold"], val_metric)
 
     # train
     # wandb.watch(model, loss_fn, log="all", log_freq=5)  # log gradients and model parameters every 5 batches
@@ -87,9 +130,6 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
         train_loss, train_acc = train(model, train_dl, loss_fn, optim, cfg["device"])
         val_loss, val_acc = test(model, val_dl, loss_fn, cfg["device"])
 
-        if scheduler:
-            scheduler.step(val_loss if val_metric == "loss" else val_acc)
-
         # early stopping
         stop, improvement = es.stop_training(val_loss, val_acc, i_epoch)
         if use_wandb:
@@ -100,7 +140,6 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
             end = time()
             training_time = end - start
             print(f"\nTraining time: {training_time}\n")
-            # torch.save(best_model_state, weight_path)   # save model weights
             if use_wandb:
                 wandb.log({"training_time": training_time})
                 wandb.log({"best_epoch": es.best_epoch})
@@ -115,6 +154,7 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
         wandb.log({"test":{"loss":test_loss, "accuracy":test_acc}})
 
 
+# train and evaluate while logging to wandb
 def run_wandb(model, cfg, data_dir, project=None, group=None, job_type=None, name=None, val_metric="loss"):
     with wandb.init(config=cfg, project=project, group=group, job_type=job_type, name=name):
         cfg = wandb.config
