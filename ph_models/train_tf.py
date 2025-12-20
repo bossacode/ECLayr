@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report
 from time import time
 from copy import deepcopy
 import wandb
-from utils.train_utils import EarlyStopping
+from utils.train_eval import EarlyStopping
 
 
 def permute_dataset(dataset):

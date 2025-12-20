@@ -79,8 +79,8 @@ class ECCnn(Cnn):
         return x
 
 
-# Cnn + sigmoid ECLayr + sigmoid ECLayr after conv
-class SigEcCnn(Cnn):
+# Cnn + DECC + DECC after conv
+class DECCnn(Cnn):
     def __init__(self, in_channels=1, num_classes=5, *args, **kwargs):
         super().__init__(in_channels, num_classes)
         # self.decc_1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=kwargs["lam_1"], postprocess=nn.Linear(kwargs["steps_1"], topo_out_units), *args, **kwargs)

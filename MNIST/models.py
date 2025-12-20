@@ -79,7 +79,7 @@ class ECCnn(Cnn):
         return x
 
 
-# Cnn + sigmoid ECLayr + sigmoid ECLayr after conv
+# Cnn + DECC + DECC after conv
 class DECCnn(Cnn):
     def __init__(self, in_channels=1, num_classes=10, *args, **kwargs):
         super().__init__(in_channels, num_classes)
