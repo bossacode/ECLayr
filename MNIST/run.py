@@ -1,3 +1,5 @@
+import sys
+sys.path.append("../")
 import torch
 import wandb
 import argparse
@@ -52,7 +54,7 @@ if __name__ == "__main__":
             print("-"*30)
 
             name = f"sim{sim}"  # used for specifying runs in wandb
-            model = model_dict[args.model_flag](**cfg["model_params"]).to(cfg["device"])
+            model = model_dict[args.model_flag](device=cfg["device"], **cfg["model_params"]).to(cfg["device"])
             
             run_wandb(model, cfg, data_dir, project, group, job_type, name)
             # run(model, cfg, data_dir)
