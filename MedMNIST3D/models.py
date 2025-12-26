@@ -1,3 +1,5 @@
+import sys
+sys.path.append("../")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,63 +13,21 @@ class BasicBlock(nn.Module):
 
     def __init__(self, in_planes, planes, stride=1):
         super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(
-            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        # self.bn1 = nn.GroupNorm(num_groups=2, num_channels=planes)
-        
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
-                               stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
-        # self.bn2 = nn.GroupNorm(num_groups=2, num_channels=planes)
-
-        self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion*planes,
-                          kernel_size=1, stride=stride, bias=False),
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(self.expansion*planes)
-                # nn.GroupNorm(num_groups=2, num_channels=self.expansion*planes)
             )
+        else:
+            self.shortcut = nn.Sequential()
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        # out = F.relu(out)
-        return out
-
-
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, in_planes, planes, stride=1):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
-        # self.bn1 = nn.GroupNorm(num_groups=2, num_channels=planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
-                               stride=stride, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes)
-        # self.bn2 = nn.GroupNorm(num_groups=2, num_channels=planes)
-        self.conv3 = nn.Conv2d(planes, self.expansion *
-                               planes, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(self.expansion*planes)
-        # self.bn3 = nn.GroupNorm(num_groups=2, num_channels=self.expansion*planes)
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != self.expansion*planes:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion*planes,
-                          kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion*planes)
-                # nn.GroupNorm(num_groups=2, num_channels=self.expansion*planes)
-            )
-
-    def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = F.relu(self.bn2(self.conv2(out)))
-        out = self.bn3(self.conv3(out))
         out += self.shortcut(x)
         # out = F.relu(out)
         return out
@@ -78,10 +38,8 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_planes = 64
 
-        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3,
-                               stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
-        # self.bn1 = nn.GroupNorm(num_groups=2, num_channels=64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
@@ -148,14 +106,12 @@ class ECResNet18_i(ResNet18):
         self.linear = nn.Linear(512 + kwargs["postprocess_cfg"][-1], num_classes)
 
     def forward(self, x):
-        x_1 = F.relu(self.eclayr(x[:,[0]]))      # ECLayr 1
-
-        x = F.relu(self.bn1(self.conv1(x)))
+        x_1 = F.relu(self.eclayr(x[:,[0]])) # ECLayr
+        x = F.relu(self.bn1(self.conv1(x))) # ResNet
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
         x = F.relu(self.layer4(x))
-
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = torch.concat((x, x_1), dim=-1)
@@ -197,7 +153,7 @@ class ECResNet18(ResNet18):
         return x
     
 
-class SigECResNet18(ResNet18):
+class DECResNet18(ResNet18):
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__(in_channels=in_channels, num_classes=num_classes)
         self.eclayr = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
@@ -229,7 +185,3 @@ class SigECResNet18(ResNet18):
         x = torch.concat((x, x_1, x_2), dim=-1)
         x = self.linear(x)
         return x
-
-
-# def ResNet50(in_channels, num_classes):
-#     return ResNet(Bottleneck, [3, 4, 6, 3], in_channels=in_channels, num_classes=num_classes)

@@ -10,7 +10,7 @@ from copy import deepcopy
 from tqdm import trange
 import wandb
 from acsconv.converters import ACSConverter, Conv2_5dConverter, Conv3dConverter
-from models import ResNet18, ECResNet18_i, ECResNet18, SigECResNet18
+from models import ResNet18, ECResNet18_i, ECResNet18, DECResNet18
 from utils import Transform3D, model_to_syncbn, EarlyStopping
 
 
@@ -19,8 +19,8 @@ def train(model, dataloader, loss_fn, optim, device):
     ma_loss, correct = 0, 0
     model.train()
     for batch_idx, (X, y) in enumerate(dataloader, 1):
-        y_pred = model(X.to(device))
-        y = y.squeeze(1).to(device)
+        X, y = X.to(device), y.squeeze(1).to(device)
+        y_pred = model(X)
         loss = loss_fn(y_pred, y)
         ma_loss += (loss.item() * len(y))   # bc. loss_fn predicts avg loss
         correct += (y_pred.argmax(1) == y).sum().item()
@@ -37,45 +37,15 @@ def train(model, dataloader, loss_fn, optim, device):
     return ma_loss, ma_acc
 
 
-# def test(model, evaluator, dataloader, task, loss_fn, device, run, save_folder=None):
-#     data_size = len(dataloader.dataset)
-#     avg_loss = 0
-#     y_score = torch.tensor([]).to(device)
-#     model.eval()
-#     with torch.no_grad():
-#         for X, y in dataloader:
-#             y_pred = model(X.to(device))
-#             if task == 'multi-label, binary-class':
-#                 y = y.to(torch.float32).to(device)
-#                 loss = loss_fn(y_pred, y)
-#                 m = nn.Sigmoid()
-#                 y_pred = m(y_pred).to(device)
-#             else:
-#                 y = torch.squeeze(y, 1).long().to(device)
-#                 loss = loss_fn(y_pred, y)
-#                 m = nn.Softmax(dim=1)
-#                 y_pred = m(y_pred).to(device)
-#                 # y = y.float().resize_(len(y), 1)
-#             avg_loss += (loss.item() * len(y))
-#             y_score = torch.cat((y_score, y_pred), 0)
-#         y_score = y_score.detach().cpu().numpy()
-#         auc, acc = evaluator.evaluate(y_score, save_folder, run)
-#         avg_loss /= data_size
-#         print(f"Validation/Test error:\n AUC: {(auc * 100):>0.3f}%, Accuracy: {(acc * 100):>0.3f}%, Avg loss: {avg_loss:>7f} \n")
-#     return avg_loss, auc, acc
-
-
 def test(model, dataloader, loss_fn, device):
-    """
-    """
     y_pred_list, y_true_list = [], []
     data_size = len(dataloader.dataset)
     avg_loss, correct = 0, 0
     model.eval()
     with torch.no_grad():
         for X, y in dataloader:
-            y_pred = model(X.to(device))
-            y = y.squeeze(1).to(device)
+            X, y = X.to(device), y.squeeze(1).to(device)
+            y_pred = model(X)
             loss = loss_fn(y_pred, y)
             avg_loss += (loss.item() * len(y))
             correct += (y_pred.argmax(1) == y).sum().item()
@@ -132,8 +102,8 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
         model = ECResNet18_i(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])    
     elif model_flag == 'ecresnet18':
         model = ECResNet18(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])
-    elif model_flag == 'sigecresnet18':
-        model = SigECResNet18(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])
+    elif model_flag == 'decresnet18':
+        model = DECResNet18(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])
     else:
         raise NotImplementedError
     ######################################################################
