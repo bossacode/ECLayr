@@ -35,10 +35,11 @@ cdef class DECC:
         self.t_min, self.t_max = interval
         self.steps = steps
         self.res = (self.t_max-self.t_min) / (steps-1)  # distance between adjacent grid points in interval
-        self.lb, self.ub = self.t_min-self.res, self.t_max+self.res # lower and upper bound for not skipping gradient computation during backpropagation
+        self.lb = self.t_min - self.res         # lower bound for not skipping gradient computation during backpropagation
+        self.ub = self.t_max + self.res         # upper bound for not skipping gradient computation during backpropagation
         self.lam = lam
         self.tseq = np.linspace(*interval, steps, dtype=dtype_float)
-        self.cell_dims = self._set_cell_dims()
+        self.cell_dims = self._set_cell_dims()  # dimension of each cell in the cubical complex
 
     @cython.boundscheck(False)      # turn off bounds-checking for entire function
     @cython.wraparound(False)       # turn off negative index wrapping for entire function
@@ -70,8 +71,8 @@ cdef class DECC:
 
         cdef float[:] filtration
 
-        for b in range(batch_size):        # iterate over batch
-            for c in range(num_channels):  # iterate over channel
+        for b in range(batch_size):         # iterate over batch
+            for c in range(num_channels):   # iterate over channel
                 cub_cpx = gd.CubicalComplex(vertices=x[b, c])   # V-contruction
                 filtration = cub_cpx.all_cells().astype(dtype_float).flatten()
                 for cell in range(self.num_cells):  # iterate over all cells in cubical complex
@@ -144,15 +145,14 @@ cdef class DECC:
 
     @cython.cdivision(True)     # turn off checking for division by zero
     cdef inline Py_ssize_t* _find_neighbor_vtx(self, Py_ssize_t cell, float dim):
-        """Returns the indices of a cell's neighboring vertices.
-        Do not use for cells that are already vertices.
+        """Returns the indices of a cell's neighboring vertices. Not used for cells that are already vertices.
 
         Args:
             cell (Py_ssize_t): Index of cell.
             dim (float): Dimension of cell.
 
         Returns:
-            Py_ssize_t pointer: C array containing index of neighboring squares.
+            neighbor_vtx (Pointer[Py_ssize_t]): C array containing index of neighboring edges or squares.
         """
         cdef Py_ssize_t row_num
         cdef Py_ssize_t *neighbor_vtx = <Py_ssize_t *> malloc(<Py_ssize_t>dim * 2 * sizeof(Py_ssize_t)) # assign size 2 array for edges and size 4 array for squares
@@ -169,7 +169,16 @@ cdef class DECC:
         return neighbor_vtx
 
     cdef inline Py_ssize_t* _find_max_vtx(self, float *vtx_filt, Py_ssize_t *neighbor_vtx, Py_ssize_t arr_size, Py_ssize_t *num_max):
-        """
+        """Returns the index (indices) of a cell's maximum neighboring vertex (vertices). Not used for cells that are already vertices.
+
+        Args:
+            vtx_filt (float): Filtration value of neighbor vertices.
+            neighbor_vtx (Pointer[Py_ssize_t]): C array containing index of neighbor vertices.
+            size (Py_ssize_t): Number of neighboring vertices.
+            num_max 
+
+        Returns:
+            vtx (Pointer[Py_ssize_t]): C array containing index of vertices that contribute to constructing the cell.
 
         """
         cdef float max_val = vtx_filt[0]
@@ -211,48 +220,9 @@ cdef class DECC:
         return cell_dims.flatten()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 cdef class DECC3d:
-    cdef Py_ssize_t d, h, w, cub_d, cub_h, cub_w, num_cells, num_cells_d, num_pix_d, steps
-    cdef float t_min, t_max, resolution, lower_bound, lam
+    cdef Py_ssize_t D, H, W, cD, cH, cW, num_cells, num_cells_D, num_pix_D, steps
+    cdef float t_min, t_max, res, lb, ub, lam
     cdef float[:] tseq
     cdef const float[:] cell_dims
 
@@ -265,29 +235,30 @@ cdef class DECC3d:
             constr (str, optional): One of V or T, corresponding to V-construction and T-construction, respectively. Defaults to V.
             lam (float, optional): Controls the tightness of sigmoid approximation. Defaults to 200.
         """
-        self.d, self.h, self.w = arr_size
-        self.cub_d, self.cub_h, self.cub_w = [2*i-1 if constr=="V" else 2*i+1 for i in [self.d, self.h, self.w]]    # size of the cubical complex
-        self.num_cells = self.cub_d * self.cub_h * self.cub_w
-        self.num_cells_d = self.cub_h*self.cub_w    # number of cells for each depth
-        self.num_pix_d = self.h*self.w              # number of pixels for each depth
+        self.D, self.H, self.W = arr_size
+        self.cD, self.cH, self.cW = [2*i-1 for i in arr_size]   # size of the cubical complex
+        self.num_cells = self.cD * self.cH * self.cW
+        self.num_cells_D = self.cH * self.cW    # number of cells for each depth
+        self.num_pix_D = self.H * self.W        # number of pixels for each depth
         self.t_min, self.t_max = interval
         self.steps = steps
-        self.resolution = (self.t_max - self.t_min) / (self.steps - 1)  # distance between adjacent grid points in interval
-        self.lower_bound = self.t_min - self.resolution                 # lower bound for conducting gradient calculation during backpropagation
+        self.res = (self.t_max-self.t_min) / (steps-1)  # distance between adjacent grid points in interval
+        self.lb = self.t_min - self.res         # lower bound for not skipping gradient computation during backpropagation
+        self.ub = self.t_max + self.res         # upper bound for not skipping gradient computation during backpropagation
         self.lam = lam
         self.tseq = np.linspace(*interval, steps, dtype=dtype_float)
-        self.cell_dims = self._set_cell_dims()
+        self.cell_dims = self._set_cell_dims()  # dimension of each cell in the cubical complex
 
     # V-construction
     @cython.boundscheck(False)      # turn off bounds-checking for entire function
     @cython.wraparound(False)       # turn off negative index wrapping for entire function
     @cython.cdivision(True)         # turn off checking for division by zero
     @cython.initializedcheck(False) # turn off initialization check
-    def cal_ecc_vtx(self, float[:, :, :, :, :] x, bint backprop):
-        """_summary_
+    def cal_ecc(self, float[:, :, :, :, :] x, bint backprop):
+        """Compute the sigmoid-approximated Euler characteristic curve of 2D images using cubical complex.
 
         Args:
-            x (anything convertible to a numpy.ndarray): Array of shape [B, C, D, H, W].
+            x (ndarray or tensor of shape (B, C, D, H, W)): Batch of 3D input images.
             backprop (bint): Whether or not the input requires gradient calculation.
 
         Returns:
@@ -295,8 +266,8 @@ cdef class DECC3d:
         """
         cdef Py_ssize_t batch_size = x.shape[0]
         cdef Py_ssize_t num_channels = x.shape[1]
-        cdef Py_ssize_t b, c, cell, i, pix, num_neighbors, num_max
-        cdef float filt, dim, coef, t
+        cdef Py_ssize_t b, c, cell, i, j, pix, n_neighbor_vtx, num_max
+        cdef float filt, dim, coef, sig
         cdef Py_ssize_t *neighbor_vtx
         cdef Py_ssize_t *vtx
         cdef float[8] vtx_filt
@@ -304,37 +275,36 @@ cdef class DECC3d:
         ecc = np.zeros((batch_size, num_channels, self.steps), dtype=dtype_float)
         cdef float[:, :, :] ecc_view = ecc
 
-        grad = np.zeros((batch_size, num_channels, self.d*self.h*self.w, self.steps), dtype=dtype_float) if backprop else None
+        grad = np.zeros((batch_size, num_channels, self.D*self.H*self.W, self.steps), dtype=dtype_float) if backprop else None
         cdef float[:, :, :, :] grad_view = grad
 
         cdef float[:] filtration
 
-        for b in range(batch_size):        # iterate over batch
-            for c in range(num_channels):  # iterate over channel
+        for b in range(batch_size):         # iterate over batch
+            for c in range(num_channels):   # iterate over channel
                 cub_cpx = gd.CubicalComplex(vertices=x[b, c])   # V-contruction
                 filtration = cub_cpx.all_cells().astype(dtype_float).flatten()
                 for cell in range(self.num_cells):  # iterate over all cells in cubical complex
                     filt = filtration[cell]
-                    if filt > self.t_max:
+                    if filt > self.ub:      # doesn't affect neither forward nor backward path
                         continue 
                     dim = self.cell_dims[cell]
                     coef = (-1.)**dim
 
                     # calculate ecc using sigmoid approximation
                     for i in range(self.steps):
-                        t = self.tseq[i]
-                        ecc_view[b, c, i] += coef * (sigmoid(t-filt, self.lam))
+                        ecc_view[b, c, i] += coef * sigmoid(self.tseq[i]-filt, self.lam)
 
                     # calculation of gradient only for inputs that require gradient
                     if backprop:
-                        if filt < self.lower_bound:                             # skip bc. gradient is 0 for simplices with filtration value under lower bound
+                        if filt < self.lb:  # doesn't affect backward path
                             continue
                         # vertex
                         if dim == 0:
                             pix = self._vtx2pix(cell)                           # index of the corresponding pixel in flattened original image
                             for i in range(self.steps):
-                                t = self.tseq[i]
-                                grad_view[b, c, pix, i] -= self.lam * sigmoid(t-filt, self.lam) * (1 - sigmoid(t-filt, self.lam))
+                                sig = sigmoid(self.tseq[i]-filt, self.lam)
+                                grad_view[b, c, pix, i] -= self.lam * sig * (1 - sig)
                         # edge
                         elif dim == 1:
                             neighbor_vtx = self._find_neighbor_vtx(cell, dim)   # neighbor_vtx points at a C array containing index of 2 neighbor vertices
@@ -344,32 +314,34 @@ cdef class DECC3d:
                             if vtx_filt[0] == vtx_filt[1]:  # split gradient when the neighboring vertices have the same filtration value
                                 for i in range(2):
                                     pix = self._vtx2pix(neighbor_vtx[i])
-                                    for i in range(self.steps):
-                                        t = self.tseq[i]
-                                        grad_view[b, c, pix, i] += self.lam * sigmoid(t-filt, self.lam) * (1 - sigmoid(t-filt, self.lam)) / 2.
+                                    for j in range(self.steps):
+                                        sig = sigmoid(self.tseq[j]-filt, self.lam)
+                                        grad_view[b, c, pix, j] += self.lam * sig * (1-sig) / 2.
                             else:
                                 i = 0 if vtx_filt[0] > vtx_filt[1] else 1
                                 pix = self._vtx2pix(neighbor_vtx[i])
-                                for i in range(self.steps):
-                                    t = self.tseq[i]
-                                    grad_view[b, c, pix, i] += self.lam * sigmoid(t-filt, self.lam) * (1 - sigmoid(t-filt, self.lam))                            
+                                for j in range(self.steps):
+                                    sig = sigmoid(self.tseq[j]-filt, self.lam)
+                                    grad_view[b, c, pix, j] += self.lam * sig * (1-sig)
                             free(neighbor_vtx)
                         # square and cube
                         else:
-                            num_neighbors = 4 if dim == 2 else 8                # 4 neighbors for square and 8 neighbors for cube
-                            neighbor_vtx = self._find_neighbor_vtx(cell, dim)   # neighbor_vtx points at a C array containing index of "num_neighbor" neighbor vertices
-                            for i in range(num_neighbors):
+                            n_neighbor_vtx = 4 if dim == 2 else 8               # 4 neighbor vertices if square, 8 neighbor vertices if cube
+                            neighbor_vtx = self._find_neighbor_vtx(cell, dim)   # neighbor_vtx points at a C array containing index of "n_neighbor_vtx" neighbor vertices
+                            for i in range(n_neighbor_vtx):
                                 vtx_filt[i] = filtration[neighbor_vtx[i]]       # filtration value of neighbor vertices
                             
-                            vtx = self._find_max_vtx(vtx_filt, neighbor_vtx, num_neighbors, &num_max)   # vtx points at a C array containing index of vertices that contribute to constructing the cell
+                            vtx = self._find_max_vtx(vtx_filt, neighbor_vtx, n_neighbor_vtx, &num_max)   # vtx points at a C array containing index of vertices that contribute to constructing the cell
                             for i in range(num_max):
                                 pix = self._vtx2pix(vtx[i])
-                                for i in range(self.steps):
-                                    t = self.tseq[i]
-                                    if dim == 2:
-                                        grad_view[b, c, pix, i] -= 1./num_max * self.lam * sigmoid(t-filt, self.lam) * (1 - sigmoid(t-filt, self.lam))
-                                    else:
-                                        grad_view[b, c, pix, i] += 1./num_max * self.lam * sigmoid(t-filt, self.lam) * (1 - sigmoid(t-filt, self.lam))
+                                if dim == 2:    # square
+                                    for j in range(self.steps):
+                                        sig = sigmoid(self.tseq[j]-filt, self.lam)
+                                        grad_view[b, c, pix, j] -= self.lam * sig * (1-sig) / num_max
+                                else:           # cube
+                                    for j in range(self.steps):
+                                        sig = sigmoid(self.tseq[j]-filt, self.lam)
+                                        grad_view[b, c, pix, j] += self.lam * sig * (1-sig) / num_max
                             free(vtx)
                             free(neighbor_vtx)
         return ecc, grad
@@ -377,7 +349,6 @@ cdef class DECC3d:
     @cython.cdivision(True)     # turn off checking for division by zero
     cdef inline Py_ssize_t _vtx2pix(self, Py_ssize_t vtx):
         """Given the index of a vertex, this function returns the index of the corresponding pixel.
-        Used for V-constructed cubical complexes.
 
         Args:
             vtx (Py_ssize_t): Index of vertex.
@@ -385,60 +356,64 @@ cdef class DECC3d:
         Returns:
             Py_ssize_t: Index of corresponding pixel.
         """
-        cdef Py_ssize_t leftover = vtx % (2*self.num_cells_d)
-        return (vtx // (2*self.num_cells_d))*(self.num_pix_d) + (leftover // (2*self.cub_w))*self.w + (leftover % self.cub_w)/2
+        cdef Py_ssize_t leftover = vtx % (2*self.num_cells_D)
+        return (vtx // (2*self.num_cells_D))*(self.num_pix_D) + (leftover // (2*self.cW))*self.W + (leftover % self.cW)/2
 
     @cython.cdivision(True)     # turn off checking for division by zero
     cdef inline Py_ssize_t* _find_neighbor_vtx(self, Py_ssize_t cell, float dim):
-        """Returns the indices of a cell's neighboring vertices.
-        Used for V-constructed cubical complexes.
-        Do not use for cells that are already vertices.
+        """Returns the indices of a cell's neighboring vertices. Not used for cells that are already vertices.
 
         Args:
             cell (Py_ssize_t): Index of cell.
             dim (float): Dimension of cell.
 
         Returns:
-            Py_ssize_t pointer: C array containing index of neighboring squares.
+            neighbor_vtx (Pointer[Py_ssize_t]): C array containing index of neighboring edges, squares, or cubes.
         """
         cdef Py_ssize_t depth_num, row_num, leftover
-        ##################################################################### 2**dim 으로 바꿔야 함
-        # cdef Py_ssize_t *neighbor_vtx = <Py_ssize_t *> malloc(<Py_ssize_t>dim * 2 * sizeof(Py_ssize_t)) # assign size 2 array for edges and size 4 array for squares and size 8 for cubes
-        cdef Py_ssize_t *neighbor_vtx = <Py_ssize_t *> malloc(<Py_ssize_t>(2 ** dim) * sizeof(Py_ssize_t)) # assign size 2 array for edges and size 4 array for squares and size 8 for cubes
-        #####################################################################
+        cdef Py_ssize_t *neighbor_vtx = <Py_ssize_t *> malloc(<Py_ssize_t>(2 ** dim) * sizeof(Py_ssize_t)) # assign size 2 array for edges, size 4 array for squares, and size 8 for cubes
         # cube
         if dim ==3:
-            neighbor_vtx[:] = [cell-self.num_cells_d-self.cub_w-1, cell-self.num_cells_d-self.cub_w+1, cell-self.num_cells_d+self.cub_w-1, cell-self.num_cells_d+self.cub_w+1,
-                            cell+self.num_cells_d-self.cub_w-1, cell+self.num_cells_d-self.cub_w+1, cell+self.num_cells_d+self.cub_w-1, cell+self.num_cells_d+self.cub_w+1]
+            neighbor_vtx[:] = [cell-self.num_cells_D-self.cW-1, cell-self.num_cells_D-self.cW+1, cell-self.num_cells_D+self.cW-1, cell-self.num_cells_D+self.cW+1,
+                            cell+self.num_cells_D-self.cW-1, cell+self.num_cells_D-self.cW+1, cell+self.num_cells_D+self.cW-1, cell+self.num_cells_D+self.cW+1]
         else:
-            depth_num = cell // self.num_cells_d
-            leftover = cell % self.num_cells_d
+            depth_num = cell // self.num_cells_D
+            leftover = cell % self.num_cells_D
             if depth_num % 2 == 0:  # even depth
                 # edge
                 if dim == 1:
-                    row_num = leftover // self.cub_w
+                    row_num = leftover // self.cW
                     if row_num % 2 == 0:    # even row
                         neighbor_vtx[:] = [cell-1, cell+1]
                     else:                   # odd row
-                        neighbor_vtx[:] = [cell-self.cub_w, cell+self.cub_w]
+                        neighbor_vtx[:] = [cell-self.cW, cell+self.cW]
                 # square
                 else:
-                    neighbor_vtx[:] = [cell-self.cub_w-1, cell-self.cub_w+1, cell+self.cub_w-1, cell+self.cub_w+1]
+                    neighbor_vtx[:] = [cell-self.cW-1, cell-self.cW+1, cell+self.cW-1, cell+self.cW+1]
             else:                   # odd depth
                 # edge
                 if dim == 1:
-                    neighbor_vtx[:] = [cell-self.num_cells_d, cell+self.num_cells_d]
+                    neighbor_vtx[:] = [cell-self.num_cells_D, cell+self.num_cells_D]
                 # square
                 else:
-                    row_num = leftover // self.cub_w
+                    row_num = leftover // self.cW
                     if row_num % 2 == 0:    # even row
-                        neighbor_vtx[:] = [cell-self.num_cells_d-1, cell-self.num_cells_d+1, cell+self.num_cells_d-1, cell+self.num_cells_d+1]
+                        neighbor_vtx[:] = [cell-self.num_cells_D-1, cell-self.num_cells_D+1, cell+self.num_cells_D-1, cell+self.num_cells_D+1]
                     else:
-                        neighbor_vtx[:] = [cell-self.num_cells_d-self.cub_w, cell-self.num_cells_d+self.cub_w, cell+self.num_cells_d-self.cub_w, cell+self.num_cells_d+self.cub_w]
+                        neighbor_vtx[:] = [cell-self.num_cells_D-self.cW, cell-self.num_cells_D+self.cW, cell+self.num_cells_D-self.cW, cell+self.num_cells_D+self.cW]
         return neighbor_vtx
 
     cdef inline Py_ssize_t* _find_max_vtx(self, float *vtx_filt, Py_ssize_t *neighbor_vtx, Py_ssize_t arr_size, Py_ssize_t *num_max):
-        """
+        """Returns the index (indices) of a cell's maximum neighboring vertex (vertices). Not used for cells that are already vertices.
+
+        Args:
+            vtx_filt (float): Filtration value of neighbor vertices.
+            neighbor_vtx (Pointer[Py_ssize_t]): C array containing index of neighbor vertices.
+            size (Py_ssize_t): Number of neighboring vertices.
+            num_max 
+
+        Returns:
+            vtx (Pointer[Py_ssize_t]): C array containing index of vertices that contribute to constructing the cell.
 
         """
         cdef float max_val = vtx_filt[0]
@@ -473,9 +448,9 @@ cdef class DECC3d:
         Returns:
             _type_: _description_
         """
-        dimension = np.zeros([self.cub_d, self.cub_h, self.cub_w], dtype=dtype_float)
-        dimension[[i for i in range(self.cub_d) if i % 2 == 1], :, :] += 1
-        dimension[:, [i for i in range(self.cub_h) if i % 2 == 1], :] += 1
-        dimension[:, :, [i for i in range(self.cub_w) if i % 2 == 1]] += 1
+        dimension = np.zeros([self.cD, self.cH, self.cW], dtype=dtype_float)
+        dimension[[i for i in range(self.cD) if i % 2 == 1], :, :] += 1
+        dimension[:, [i for i in range(self.cH) if i % 2 == 1], :] += 1
+        dimension[:, :, [i for i in range(self.cW) if i % 2 == 1]] += 1
         dimension.setflags(write=False)
         return dimension.flatten()

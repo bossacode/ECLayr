@@ -5,9 +5,9 @@ import numpy as np
 # import sys
 
 # if sys.platform.startswith("win"):
-#     openmp_arg = '/openmp'
+#     openmp_arg = "/openmp"
 # else:
-#     openmp_arg = '-fopenmp'
+#     openmp_arg = "-fopenmp"
 
 Options.annotate = True
 
@@ -16,8 +16,9 @@ extensions = [
     #     name="decc",
     #     sources=["decc.pyx"],
     #     extra_compile_args=[openmp_arg],
-    #     extra_link_args=[openmp_arg]
-    #     ),
+    #     extra_link_args=[openmp_arg],
+    #     include_dirs=[np.get_include()]
+    #     )
     Extension(
         name="decc",
         sources=["decc.pyx"],
