@@ -130,7 +130,7 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
             param_list.append({"params": layer.parameters(), "lr": cfg["lr"]})
     optim = Adam(param_list, lr=cfg["lr"])
     # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[0.5 * cfg.epochs, 0.75 * cfg.epochs], gamma=cfg.gamma)
-    scheduler = ReduceLROnPlateau(optim, mode="min", factor=cfg["factor"], patience=cfg["sch_patience"], threshold=cfg["threshold"], verbose=True)
+    # scheduler = ReduceLROnPlateau(optim, mode="min", factor=cfg["factor"], patience=cfg["sch_patience"], threshold=cfg["threshold"], verbose=True)
     es = EarlyStopping(cfg["es_patience"], cfg["threshold"], val_metric="loss") # set early stopping
 
     # best_auc = 0
