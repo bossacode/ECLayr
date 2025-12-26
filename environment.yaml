@@ -4,6 +4,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - acsconv=0.1.1
   - cython=3.0.10
   - gudhi=3.8.0
   - matplotlib=3.8.4
@@ -13,3 +14,5 @@ dependencies:
   - pytorch=2.5.1
   - torchvision=0.20.1
   - wandb=0.16.6
+  - pip:
+    - medmnist==3.0.2
