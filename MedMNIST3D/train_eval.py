@@ -66,7 +66,7 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
     info = medmnist.INFO[data_flag]
     n_channels = 3 if cfg["as_rgb"] else info['n_channels']
     n_classes = len(info['label'])
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = cfg["device"]
     num_workers = 4
 
     # set dataset
@@ -151,7 +151,7 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
         train_loss, train_acc = train(model, train_dl, loss_fn, optim, device)
         val_loss, val_acc = test(model, val_dl, loss_fn, device)
         
-        scheduler.step(val_loss)
+        # scheduler.step(val_loss)
 
         # early stopping
         stop, improvement = es.stop_training(val_loss, val_acc, i_epoch)

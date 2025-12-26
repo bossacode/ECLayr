@@ -43,6 +43,7 @@ if __name__ == '__main__':
     # load configuration file needed for training model
     with open(f"configs/{args.data_flag}/{args.model_flag}.yaml", "r") as f:
         cfg = yaml.load(f, yaml.FullLoader)
+        cfg["device"] = "cuda" if torch.cuda.is_available() else "cpu"  # add device to configuration file
 
     nsim = 10    # number of simulations to run
     wandb.login()
