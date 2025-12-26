@@ -1,0 +1,27 @@
+as_rgb: True  # download 3 channel data if set to True
+batch_size: 32
+epochs: 100
+es_patience: 10
+factor: 0.1
+lr: 0.001
+lr_topo: 0.0001
+model_params:
+  # ECLayr params
+  interval_1:
+  - 0.01
+  - 0.99
+  interval_2:
+  - 0.1
+  - 0.9
+  steps: 32
+  constr: "V"
+  sublevel_1: False
+  # sublevel_2: False
+  sublevel_2: True
+  beta: 0.01
+  postprocess_cfg:  # dimensions of postprocess layer
+  - 64
+  - 32
+sch_patience: 5
+size: 28
+threshold: 0.001

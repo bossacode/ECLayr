@@ -1,0 +1,9 @@
+as_rgb: True  # download 3 channel data if set to True
+batch_size: 32
+epochs: 100
+es_patience: 10
+factor: 0.1
+lr: 0.001
+sch_patience: 5
+size: 28
+threshold: 0.001
