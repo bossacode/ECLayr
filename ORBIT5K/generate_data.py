@@ -1,7 +1,6 @@
 import sys
 sys.path.append("../")
 import torch
-from torch.distributions import Bernoulli
 from sklearn.model_selection import train_test_split
 import os
 from utils.preprocess import noise, dtm_transform
