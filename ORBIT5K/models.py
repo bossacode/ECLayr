@@ -22,7 +22,7 @@ class Cnn(nn.Module):
             )
 
     def forward(self, x):
-        x_pc, x, x_dtm = x
+        x, x_dtm = x
         x = F.relu(self.conv(x))
         x = self.fc(x.flatten(1))
         return x
@@ -40,7 +40,7 @@ class ECCnn_i(Cnn):
             )
 
     def forward(self, x):
-        x_pc, x, x_dtm = x
+        x, x_dtm = x
         ecc = F.relu(self.eclayr(x_dtm))    # ECLayr
         x = F.relu(self.conv(x))            # CNN
         x = torch.concat((x.flatten(1), ecc), dim=-1)
@@ -63,7 +63,7 @@ class ECCnn(Cnn):
             )
 
     def forward(self, x):
-        x_pc, x, x_dtm = x
+        x, x_dtm = x
         ecc_1 = F.relu(self.eclayr_1(x_dtm))    # first ECLayr
         x = F.relu(self.conv(x))                # CNN
 
@@ -95,7 +95,7 @@ class DECCnn(Cnn):
             )
 
     def forward(self, x):
-        x_pc, x, x_dtm = x
+        x, x_dtm = x
         ecc_1 = F.relu(self.eclayr_1(x_dtm))    # first DECC (replaced with EClayr for computational reasons as the this layer does not require backpropagation)
         x = F.relu(self.conv(x))                # CNN
 
