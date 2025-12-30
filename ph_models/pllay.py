@@ -504,10 +504,15 @@ class PersistenceLandscapeLayer(tf.keras.layers.Layer):
     Returns:
       outputs: tensor of shape [..., len(tseq), len(KK)]
     """
-    land, dLdf = tf.map_fn(
-        lambda x: tf.compat.v1.py_func(self.python_op_diag_landscape, 
-                                       [x], [tf.float32, tf.float32], stateful=False), 
-                     inputs, [tf.float32, tf.float32], parallel_iterations=10, back_prop=False)
+    # land, dLdf = tf.map_fn(
+    #     lambda x: tf.compat.v1.py_func(self.python_op_diag_landscape, [x], [tf.float32, tf.float32], stateful=False),
+    #     inputs, [tf.float32, tf.float32], parallel_iterations=10, back_prop=False)
+
+    land, dLdf = tf.nest.map_structure(tf.stop_gradient,
+        tf.map_fn(lambda x: tf.numpy_function(self.python_op_diag_landscape, [x], [tf.float32, tf.float32], stateful=False),
+            inputs, [tf.float32, tf.float32], parallel_iterations=10)
+    )
+
     # aa = [tf.compat.v1.py_func(self.python_op_diag_landscape, 
     #                                    [x], [tf.float32, tf.float32], stateful=False) for x in tf.unstack(inputs)]
     # land, dLdf = zip(*aa)
