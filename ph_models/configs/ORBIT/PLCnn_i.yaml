@@ -1,15 +1,15 @@
 batch_size: 32
-epochs: 1000
-es_patience: 10
+epochs: 100
+es_patience: 5
 lr: 0.001
 model_params:
   num_classes: 5
-  # Pllay params
+  # PLLay params
   interval:
-  - 0.03
-  - 0.1
+  - 0.075
+  - 0.145
   steps: 32
-  constr: "V"
+  topo_out: 32
   sublevel: True
   KK:
   - 0
