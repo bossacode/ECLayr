@@ -10,13 +10,13 @@ import wandb
 
 class CustomDataset(Dataset):
     def __init__(self, file_path):
-        *self.X, self.y = torch.load(file_path, weights_only=True)
+        self.X, self.X_dtm, self.y = torch.load(file_path, weights_only=True)
         
     def __len__(self):
         return len(self.y)
 
     def __getitem__(self, idx):
-        return *[x[idx] for x in self.X], self.y[idx]
+        return self.X[idx], self.X_dtm[idx], self.y[idx]
 
 
 def set_dl(data_dir, batch_size):
