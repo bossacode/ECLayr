@@ -13,15 +13,22 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.manual_seed(42)
 
-
+# argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--model_flag", help="Name of model to train")
+parser.add_argument("-m", "--model_flag", help="Name of model to train")
 args = parser.parse_args()
+
 # load configuration file needed for training model
 with open(f"configs/{args.model_flag}.yaml", "r") as f:
     cfg = yaml.load(f, yaml.FullLoader)
-    cfg["device"] = "cuda" if torch.cuda.is_available() else "cpu"  # add device to configuration file
 
+# add device to configuration file
+if torch.cuda.is_available():
+    cfg["device"] = "cuda"
+elif torch.backends.mps.is_available():
+    cfg["device"] = "mps"
+else:
+    cfg["device"] = "cpu"  
 
 model_dict = {
     "Cnn": Cnn,
