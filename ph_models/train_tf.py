@@ -12,9 +12,9 @@ from utils.train_eval import EarlyStopping
 
 
 def permute_dataset(dataset):
-    *X, y = dataset
-    dataset = tf.data.Dataset.from_tensor_slices((*[x.permute(0,2,3,1) if x.ndim == 4 else x for x in X], y))
-    return dataset.shuffle(100, reshuffle_each_iteration=True, seed=123)
+    X, X_dtm, y = dataset
+    dataset = tf.data.Dataset.from_tensor_slices((X.permute(0,2,3,1), X_dtm.permute(0,2,3,1), y))
+    return dataset.shuffle(100, reshuffle_each_iteration=True, seed=42)
 
 
 def set_dl(data_dir, batch_size):
@@ -53,9 +53,6 @@ class ReduceLROnPlateau:
 
 
 def train(model, dataloader, loss_fn, optimizer):
-    """
-    train for 1 epoch
-    """
     epoch_loss_avg = tf.keras.metrics.Mean()
     epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
     for batch, (*X, y) in enumerate(dataloader, 1): # X is a list containing batch of original data and DTM transformed data  
@@ -75,8 +72,6 @@ def train(model, dataloader, loss_fn, optimizer):
 
 
 def test(model, dataloader, loss_fn):
-    """
-    """
     y_pred_list, y_true_list = [], []
     avg_loss, correct, data_size = 0, 0, 0
     for *X, y in dataloader:
@@ -102,7 +97,7 @@ def test(model, dataloader, loss_fn):
 def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
     train_dl, val_dl, test_dl = set_dl(data_dir, cfg["batch_size"]) # set dataloader
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    optim = tf.keras.optimizers.Adam(learning_rate=cfg["lr"])
+    optim = tf.keras.optimizers.legacy.Adam(learning_rate=cfg["lr"])
     es = EarlyStopping(cfg["es_patience"], cfg["threshold"], val_metric=val_metric) # set early stopping
     
     # train
