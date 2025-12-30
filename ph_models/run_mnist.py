@@ -10,16 +10,16 @@ from ph_models.mnist_models import PersCnn, PLCnn_i, PLCnn
 tf.keras.utils.set_random_seed(42)
 tf.config.experimental.enable_op_determinism()
 
-
+# argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--model_flag", help="Name of model to train")
+parser.add_argument("-m", "--model_flag", help="Name of model to train")
 args = parser.parse_args()
+
 # load configuration file needed for training model
 with open(f"configs/MNIST/{args.model_flag}.yaml", "r") as f:
     cfg = yaml.load(f, yaml.FullLoader)
 
-
-models = {
+model_dict = {
     "PersCnn": PersCnn,
     "PLCnn_i": PLCnn_i,
     "PLCnn": PLCnn
@@ -34,7 +34,6 @@ if __name__ == "__main__":
     project = "MNIST"           # used as project name in wandb
     group = args.model_flag     # used for grouping experiments in wandb
 
-    # loop over different noise probability
     for p in cn_prob:
         prob = str(int(p * 100)).zfill(2)
         job_type = prob                                     # used for grouping experiments in wandb
@@ -50,7 +49,7 @@ if __name__ == "__main__":
             print("-"*30)
 
             name = f"sim{sim}"  # used for specifying runs in wandb
-            model = models[args.model_flag](**cfg["model_params"])
+            model = model_dict[args.model_flag](**cfg["model_params"])
             
             run_wandb(model, cfg, data_dir, project, group, job_type, name)
             # run(model, cfg, data_dir)
