@@ -43,7 +43,7 @@ if __name__ == "__main__":
     noise_prob = [0.0, 0.05, 0.1, 0.15, 0.2]    # noise probabilities
 
     wandb.login()
-    project = "ORBIT5K"         # used as project name in wandb
+    project = "ORBIT"           # used as project name in wandb
     group = args.model_flag     # used for grouping experiments in wandb
 
     for p in noise_prob:
