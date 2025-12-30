@@ -24,13 +24,13 @@ class Cnn(tf.keras.Model):
         x, x_dtm = x
         x = self.conv(x)
         x = self.fc(self.flatten(x))
-        return 
+        return x
 
 
 # Cnn + Perslay
 class PersCnn(Cnn):
     def __init__(self, num_classes=10, *args, **kwargs):
-        super().__init__()
+        super().__init__(num_classes)
         self.perslay = CubicalPerslay(rho=Dense(kwargs["topo_out"], activation='relu'), *args, **kwargs)
         self.fc = Sequential([
             Dense(64, activation='relu'),
@@ -49,7 +49,7 @@ class PersCnn(Cnn):
 # Cnn + PLLay
 class PLCnn_i(Cnn):
     def __init__(self, num_classes=10, *args, **kwargs):
-        super().__init__()
+        super().__init__(num_classes)
         self.sublevel, interval = kwargs["sublevel"], kwargs["interval"]
         interval = interval if self.sublevel else [-i for i in reversed(interval)]
         tseq = np.linspace(*interval, kwargs["steps"])
@@ -70,9 +70,10 @@ class PLCnn_i(Cnn):
         return x
 
 
+# Cnn + PLLay + PLLay after conv
 class PLCnn(Cnn):
     def __init__(self, num_classes=10, *args, **kwargs):
-        super().__init__()
+        super().__init__(num_classes)
         self.sublevel_1, interval_1 = kwargs["sublevel_1"], kwargs["interval_1"]
         interval_1 = interval_1 if self.sublevel_1 else [-i for i in reversed(interval_1)]
         tseq_1 = np.linspace(*interval_1, kwargs["steps"])
