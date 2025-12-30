@@ -16,3 +16,4 @@ dependencies:
   - wandb=0.16.6
   - pip:
     - medmnist==3.0.2
+    - tensorflow-metal==1.2.0 # for GPU acceleration on Apple Silicon, no need to install on other systems
