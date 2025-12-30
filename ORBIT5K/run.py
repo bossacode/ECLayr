@@ -39,14 +39,14 @@ model_dict = {
 
 
 if __name__ == "__main__":
-    nsim = 15                               # number of simulations to run
-    cn_prob = [0.0, 0.05, 0.1, 0.15, 0.2]   # ncorruption and noise probabilities
+    nsim = 15                                   # number of simulations to run
+    noise_prob = [0.0, 0.05, 0.1, 0.15, 0.2]    # noise probabilities
 
     wandb.login()
     project = "ORBIT5K"         # used as project name in wandb
     group = args.model_flag     # used for grouping experiments in wandb
 
-    for p in cn_prob:
+    for p in noise_prob:
         prob = str(int(p * 100)).zfill(2)
         job_type = prob                     # used for grouping experiments in wandb
         data_dir = f"./dataset/{prob}/"     # base directory path to where data is loaded
