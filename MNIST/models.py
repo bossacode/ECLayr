@@ -8,7 +8,7 @@ from eclayr.cubical.cubeclayr import CubECLayr, CubDECC
 
 # Cnn
 class Cnn(nn.Module):
-    def __init__(self, in_channels=1, num_classes=10):
+    def __init__(self, in_channels=1, num_classes=10, *args, **kwargs):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1),
