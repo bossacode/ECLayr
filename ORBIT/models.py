@@ -77,21 +77,21 @@ class ECCnn(Cnn):
         # x = F.relu(x)
         # x_max = x.detach().amax(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
         # if (x_max != 0).all():
-        #     ecc_2 = F.relu(self.eclayr_2(x / x_max)) # normalize between 0 and 1 for each data and channel
+        #     ecc2 = F.relu(self.eclayr2(x / x_max)) # normalize between 0 and 1 for each data and channel
         # else:
-        #     ecc_2 = F.relu(self.eclayr_2(x))
+        #     ecc2 = F.relu(self.eclayr2(x))
 
 
         # # before ReLU
-        # x_max = x.detach().amax(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
-        # x_min = x.detach().amin(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
-        # ecc_2 = F.relu(self.eclayr_2((x-x_min) / (x_max-x_min)))    # min-max normalization between 0 and 1 for each data and channel
+        # x_max = x.detach().amax(dim=(2, 3), keepdim=True)       # shape: (B, C, 1, 1)
+        # x_min = x.detach().amin(dim=(2, 3), keepdim=True)       # shape: (B, C, 1, 1)
+        # ecc2 = F.relu(self.eclayr2((x-x_min) / (x_max-x_min)))  # min-max normalization between 0 and 1 for each data and channel
 
 
         # before ReLU with DTM
         x_max = x.detach().amax(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
         x_min = x.detach().amin(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
-        x_dtm2 = self.dtm((x-x_min) / (x_max-x_min))
+        x_dtm2 = self.dtm((x-x_min) / (x_max-x_min))        # min-max normalization between 0 and 1 for each data and channel
         x_dtm2_max = x_dtm2.detach().amax(dim=(2, 3), keepdim=True)
         x_dtm2_min = x_dtm2.detach().amin(dim=(2, 3), keepdim=True)
         ecc2 = F.relu(self.eclayr2((x_dtm2-x_dtm2_min) / (x_dtm2_max-x_dtm2_min)))
@@ -125,7 +125,7 @@ class DECCnn(Cnn):
         # before ReLU with DTM
         x_max = x.detach().amax(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
         x_min = x.detach().amin(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
-        x_dtm2 = self.dtm((x-x_min) / (x_max-x_min))        # normalize between 0 and 1 for each data and channel
+        x_dtm2 = self.dtm((x-x_min) / (x_max-x_min))        # min-max normalization between 0 and 1 for each data and channel
         x_dtm2_max = x_dtm2.detach().amax(dim=(2, 3), keepdim=True)
         x_dtm2_min = x_dtm2.detach().amin(dim=(2, 3), keepdim=True)
         ecc2 = F.relu(self.decc2((x_dtm2-x_dtm2_min) / (x_dtm2_max-x_dtm2_min)))
