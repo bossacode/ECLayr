@@ -8,13 +8,13 @@ model_params:
   # ECLayr params
   interval_1:
   - 0.075
-  - 0.145
+  - 0.15
   interval_2:
-  - 0.05
-  - 0.95
+  - 0.45
+  - 0.9
   steps: 32
   topo_out: 32
   sublevel_1: True
-  sublevel_2: False
-  lam: 225
+  sublevel_2: True
+  lam: 275
 threshold: 0.001
