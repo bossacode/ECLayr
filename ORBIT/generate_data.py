@@ -111,10 +111,10 @@ if __name__ == "__main__":
     noise_prob = [0.0, 0.05, 0.1, 0.15, 0.2]    # noise probabilities
     rhos=[2.5, 3.5, 4.0, 4.1, 4.3]              # parameters defining the dynamical system
     num_pts = 1000                              # number of points in one orbit
-    num_orbits_each = 500                       # number of samples for each label
-    grid_size = 40                              # size of one side of square grid
-    val_size=0.3                                # proportion of validation split (after splitting test data)
-    test_size=0.3                               # proportion of test split
+    num_orbits_each = 1000                      # number of samples for each label
+    grid_size = 28                              # size of one side of square grid
+    val_size = 0.3                              # proportion of validation split (after splitting test data)
+    test_size = 0.9                             # proportion of test split
 
     torch.manual_seed(42)
     gen_noise_data(noise_prob, rhos, num_pts, num_orbits_each, grid_size, val_size, test_size)
