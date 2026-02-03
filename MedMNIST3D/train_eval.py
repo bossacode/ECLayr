@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+# from torch.optim.lr_scheduler import ReduceLROnPlateau
 from sklearn.metrics import classification_report
 import medmnist
 from time import time
 from copy import deepcopy
 from tqdm import trange
 import wandb
+import os
 from acsconv.converters import ACSConverter, Conv2_5dConverter, Conv3dConverter
 from models import ResNet18, ECResNet18_i, ECResNet18, DECResNet18
 from utils import Transform3D, model_to_syncbn, EarlyStopping
@@ -70,6 +71,7 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
     num_workers = 4
 
     # set dataset
+    os.makedirs("./data/", exist_ok=True)
     DataClass = getattr(medmnist, info['python_class'])
     train_transform = Transform3D(mul='random') if shape_transform else Transform3D()
     eval_transform = Transform3D(mul='0.5') if shape_transform else Transform3D()
@@ -99,11 +101,11 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
     if model_flag == 'resnet18':
         model = ResNet18(in_channels=n_channels, num_classes=n_classes)
     elif model_flag == 'ecresnet18_i':
-        model = ECResNet18_i(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])    
+        model = ECResNet18_i(in_channels=n_channels, num_classes=n_classes, device=cfg["device"], **cfg["model_params"])    
     elif model_flag == 'ecresnet18':
-        model = ECResNet18(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])
+        model = ECResNet18(in_channels=n_channels, num_classes=n_classes, device=cfg["device"], **cfg["model_params"])
     elif model_flag == 'decresnet18':
-        model = DECResNet18(in_channels=n_channels, num_classes=n_classes, **cfg["model_params"])
+        model = DECResNet18(in_channels=n_channels, num_classes=n_classes, device=cfg["device"], **cfg["model_params"])
     else:
         raise NotImplementedError
     ######################################################################
@@ -162,10 +164,10 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
         if stop or i_epoch == cfg["epochs"]:
             end = time()
             training_time = end - start
-            print(f"\nTraining time: {training_time}\n")
-            # torch.save(best_model_state, weight_path)   # save model weights
+            runtime = training_time / (es.best_epoch+cfg["es_patience"]+1)  # average runtime per epoch
+            print(f"\nRuntime per epoch: {runtime}\n")
             if use_wandb:
-                wandb.log({"training_time": training_time})
+                wandb.log({"runtime": runtime})
                 wandb.log({"best_epoch": es.best_epoch})
             break
         elif improvement:
@@ -205,8 +207,10 @@ def run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=False):
     # test_loss, test_auc, test_acc = test(model, test_evaluator, test_dl, task, loss_fn, device, run)
     # wandb.log({"test":{"loss":test_loss, "auc":test_auc, "accuracy":test_acc}})
 
+    return test_acc, train_acc, runtime, es.best_epoch
+
 
 def run_wandb(data_flag, cfg, conv, model_flag, shape_transform, name):
     with wandb.init(config=cfg, project=data_flag + "_new", group=f"{model_flag}", name=name):
         cfg = wandb.config
-        run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=True)
+        test_acc, train_acc, runtime, best_epoch = run(data_flag, cfg, conv, model_flag, shape_transform, use_wandb=True)
