@@ -29,27 +29,27 @@ def set_dl(data_dir, batch_size):
     return train_dl, val_dl, test_dl
 
 
-class ReduceLROnPlateau:
-    def __init__(self, factor, patience, threshold):
-        self.factor = factor
-        self.patiece = patience
-        self.threshold = threshold
-        self.count = 0
-        self.best_loss = float("inf")
+# class ReduceLROnPlateau:
+#     def __init__(self, factor, patience, threshold):
+#         self.factor = factor
+#         self.patiece = patience
+#         self.threshold = threshold
+#         self.count = 0
+#         self.best_loss = float("inf")
 
-    def reduce_lr(self, val_loss, optim):
-        diff = (self.best_loss - val_loss)
-        if diff > self.threshold:
-            self.count = 0
-            self.best_loss = val_loss
-        else:
-            self.count += 1
-            if self.count > self.patiece:
-                K.set_value(optim.lr, optim.lr.numpy() * self.factor)
-                print("-" * 100)
-                print("Reducing learning rate to: ", optim.lr.numpy())
-                print("-" * 100)
-                self.count = 0
+#     def reduce_lr(self, val_loss, optim):
+#         diff = (self.best_loss - val_loss)
+#         if diff > self.threshold:
+#             self.count = 0
+#             self.best_loss = val_loss
+#         else:
+#             self.count += 1
+#             if self.count > self.patiece:
+#                 K.set_value(optim.lr, optim.lr.numpy() * self.factor)
+#                 print("-" * 100)
+#                 print("Reducing learning rate to: ", optim.lr.numpy())
+#                 print("-" * 100)
+#                 self.count = 0
 
 
 def train(model, dataloader, loss_fn, optimizer):
@@ -68,7 +68,7 @@ def train(model, dataloader, loss_fn, optimizer):
         if batch % 10 == 1:
             print(f"Training loss: {loss.numpy():>7f} [{batch*len(y):>3d}/?]")
     print(f"Train error:\n Accuracy: {epoch_accuracy.result() * 100:>0.1f}%, Avg loss: {epoch_loss_avg.result():>8f} \n")
-    return epoch_loss_avg.result(), epoch_accuracy.result()
+    return epoch_loss_avg.result().numpy(), (epoch_accuracy.result() * 100).numpy()
 
 
 def test(model, dataloader, loss_fn):
@@ -119,9 +119,10 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
         if stop or i_epoch == cfg["epochs"]:
             end = time()
             training_time = end - start
-            print(f"\nTraining time: {training_time}\n")
+            runtime = training_time / (es.best_epoch+cfg["es_patience"]+1)  # average runtime per epoch
+            print(f"\nRuntime per epoch: {runtime}\n")
             if use_wandb:
-                wandb.log({"training_time": training_time})
+                wandb.log({"runtime": runtime})
                 wandb.log({"best_epoch": es.best_epoch})
             break
         elif improvement:
@@ -133,9 +134,11 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
     if use_wandb:
         wandb.log({"test":{"loss":test_loss, "accuracy":test_acc}})
 
+    return test_acc, train_acc, runtime, es.best_epoch
+
 
 # train and evaluate while logging to wandb
 def run_wandb(model, cfg, data_dir, project=None, group=None, job_type=None, name=None, val_metric="loss"):
     with wandb.init(config=cfg, project=project, group=group, job_type=job_type, name=name):
         cfg = wandb.config
-        run(model, cfg, data_dir, val_metric, use_wandb=True)
+        test_acc, train_acc, runtime, best_epoch = run(model, cfg, data_dir, val_metric, use_wandb=True)
