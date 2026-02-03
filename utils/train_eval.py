@@ -139,9 +139,10 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
         if stop or i_epoch == cfg["epochs"]:
             end = time()
             training_time = end - start
-            print(f"\nTraining time: {training_time}\n")
+            runtime = training_time / (es.best_epoch+cfg["es_patience"]+1)  # average runtime per epoch
+            print(f"\nRuntime per epoch: {runtime}\n")
             if use_wandb:
-                wandb.log({"training_time": training_time})
+                wandb.log({"runtime": runtime})
                 wandb.log({"best_epoch": es.best_epoch})
             break
         elif improvement:
@@ -153,9 +154,11 @@ def run(model, cfg, data_dir, val_metric="loss", use_wandb=False):
     if use_wandb:
         wandb.log({"test":{"loss":test_loss, "accuracy":test_acc}})
 
+    return test_acc, train_acc, runtime, es.best_epoch
+
 
 # train and evaluate while logging to wandb
 def run_wandb(model, cfg, data_dir, project=None, group=None, job_type=None, name=None, val_metric="loss"):
     with wandb.init(config=cfg, project=project, group=group, job_type=job_type, name=name):
         cfg = wandb.config
-        run(model, cfg, data_dir, val_metric, use_wandb=True)
+        test_acc, train_acc, runtime, best_epoch = run(model, cfg, data_dir, val_metric, use_wandb=True)
