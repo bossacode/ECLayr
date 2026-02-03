@@ -114,7 +114,7 @@ if __name__ == "__main__":
     num_orbits_each = 1000                      # number of samples for each label
     grid_size = 28                              # size of one side of square grid
     val_size = 0.3                              # proportion of validation split (after splitting test data)
-    test_size = 0.9                             # proportion of test split
+    test_size = 0.8                             # proportion of test split
 
     torch.manual_seed(42)
     gen_noise_data(noise_prob, rhos, num_pts, num_orbits_each, grid_size, val_size, test_size)
