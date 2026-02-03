@@ -10,10 +10,10 @@ model_params:
   - 0.075
   - 0.15
   interval_2:
-  - 0.45
-  - 0.9
-  steps: 32
-  topo_out: 32
+  - 0.05
+  - 0.15
+  steps: 16
+  topo_out: 16
   sublevel_1: True
   sublevel_2: True
   beta: "auto"

@@ -8,8 +8,8 @@ model_params:
   interval:
   - 0.075
   - 0.15
-  steps: 32
-  topo_out: 32
+  steps: 16
+  topo_out: 16
   sublevel: True
   k: 2
 threshold: 0.001
