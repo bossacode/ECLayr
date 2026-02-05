@@ -32,7 +32,7 @@ if __name__ == "__main__":
     nsim = 15                                   # number of simulations to run
     noise_prob = [0.0, 0.05, 0.1, 0.15, 0.2]    # noise probabilitieslities
 
-    result_dir = "./results/ORBIT"    # directory to save results
+    result_dir = "../ORBIT/results"             # directory to save results
     os.makedirs(result_dir, exist_ok=True)
 
     # wandb.login()
