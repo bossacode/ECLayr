@@ -80,7 +80,7 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42, stratify=y)
     X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42, stratify=y_train)
 
-    os.makedirs("./dataset/", exist_ok=True)
-    torch.save((torch.from_numpy(X_tr).to(torch.float32), torch.from_numpy(y_tr).to(torch.float32)), "./dataset/train.pt")
-    torch.save((torch.from_numpy(X_val).to(torch.float32), torch.from_numpy(y_val).to(torch.float32)), "./dataset/val.pt")
-    torch.save((torch.from_numpy(X_test).to(torch.float32), torch.from_numpy(y_test).to(torch.float32)), "./dataset/test.pt")
+    os.makedirs("./data/", exist_ok=True)
+    torch.save((torch.from_numpy(X_tr).to(torch.float32), torch.from_numpy(y_tr).to(torch.float32)), "./data/train.pt")
+    torch.save((torch.from_numpy(X_val).to(torch.float32), torch.from_numpy(y_val).to(torch.float32)), "./data/val.pt")
+    torch.save((torch.from_numpy(X_test).to(torch.float32), torch.from_numpy(y_test).to(torch.float32)), "./data/test.pt")

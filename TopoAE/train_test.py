@@ -109,8 +109,8 @@ def eval(model, dataloader, device, plot_latent=False):
 
 def train_val(model, batch_size, lr, epochs, plot_latent=True):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    train_dataset = CustomDataset("./dataset/train.pt")
-    val_dataset = CustomDataset("./dataset/val.pt")
+    train_dataset = CustomDataset("./data/train.pt")
+    val_dataset = CustomDataset("./data/val.pt")
     train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size)
 
@@ -136,6 +136,6 @@ def train_val(model, batch_size, lr, epochs, plot_latent=True):
 
 def test(model, batch_size):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    test_dataset = CustomDataset("./dataset/test.pt")
+    test_dataset = CustomDataset("./data/test.pt")
     test_dataloader = DataLoader(test_dataset, batch_size)
     test_loss = eval(model, test_dataloader, device, plot_latent=True)
