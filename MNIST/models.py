@@ -52,9 +52,9 @@ class ECCnn_i(Cnn):
 class ECCnn(Cnn):
     def __init__(self, in_channels=1, num_classes=10, *args, **kwargs):
         super().__init__(in_channels, num_classes)
-        self.eclayr_1 = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
+        self.eclayr1 = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
-        self.eclayr_2 = CubECLayr(interval=kwargs["interval_2"], sublevel=kwargs["sublevel_2"],
+        self.eclayr2 = CubECLayr(interval=kwargs["interval_2"], sublevel=kwargs["sublevel_2"],
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
         self.fc = nn.Sequential(
                     nn.Linear(784 + 2*kwargs["topo_out"], 64),
@@ -64,17 +64,17 @@ class ECCnn(Cnn):
 
     def forward(self, x):
         x, x_dtm = x
-        ecc_1 = F.relu(self.eclayr_1(x_dtm))    # first ECLayr
-        x = F.relu(self.conv(x))                # CNN
+        ecc1 = F.relu(self.eclayr1(x_dtm))  # first ECLayr
+        x = F.relu(self.conv(x))            # CNN
 
-        # second ECLayr after conv layer
-        max_vals = x.amax(dim=(2, 3), keepdim=True)     # shape: (B, C, 1, 1)
-        if (max_vals != 0).all():
-            ecc_2 = F.relu(self.eclayr_2(x / max_vals)) # normalize between 0 and 1 for each data and channel
+        # second ECLayr
+        x_max = x.detach().amax(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
+        if (x_max != 0).all():
+            ecc2 = F.relu(self.eclayr2(x / x_max))  # normalize between 0 and 1 for each data and channel
         else:
-            ecc_2 = F.relu(self.eclayr_2(x))
-        
-        x = torch.concat((x.flatten(1), ecc_1, ecc_2), dim=-1)
+            ecc2 = F.relu(self.eclayr2(x))
+
+        x = torch.concat((x.flatten(1), ecc1, ecc2), dim=-1)
         x = self.fc(x)
         return x
 
@@ -83,10 +83,11 @@ class ECCnn(Cnn):
 class DECCnn(Cnn):
     def __init__(self, in_channels=1, num_classes=10, *args, **kwargs):
         super().__init__(in_channels, num_classes)
-        # self.decc_1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=kwargs["lam_1"], postprocess=nn.Linear(kwargs["steps_1"], topo_out_units), *args, **kwargs)
-        self.eclayr_1 = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
+        self.decc1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=1000,
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
-        self.decc_2 = CubDECC(interval=kwargs["interval_2"], sublevel=kwargs["sublevel_2"],
+        # self.eclayr1 = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
+        #                           postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
+        self.decc2 = CubDECC(interval=kwargs["interval_2"], sublevel=kwargs["sublevel_2"], lam=kwargs["lam_2"],
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
         self.fc = nn.Sequential(
                     nn.Linear(784 + 2*kwargs["topo_out"], 64),
@@ -96,16 +97,17 @@ class DECCnn(Cnn):
 
     def forward(self, x):
         x, x_dtm = x
-        ecc_1 = F.relu(self.eclayr_1(x_dtm))    # first DECC (replaced with EClayr for computational reasons as the this layer does not require backpropagation)
-        x = F.relu(self.conv(x))                # CNN
+        ecc1 = F.relu(self.decc1(x_dtm))    # first DECC
+        # ecc1 = F.relu(self.eclayr1(x_dtm))  # first DECC (replaced with EClayr for computational reasons as the this layer does not require backpropagation)
+        x = F.relu(self.conv(x))            # CNN
 
-        # second DECC after conv layer
-        max_vals = x.amax(dim=(2, 3), keepdim=True)     # shape: (B, C, 1, 1)
-        if (max_vals != 0).all():
-            ecc_2 = F.relu(self.decc_2(x / max_vals))   # normalize between 0 and 1 for each data and channel
+        # second DECC
+        x_max = x.detach().amax(dim=(2, 3), keepdim=True)   # shape: (B, C, 1, 1)
+        if (x_max != 0).all():
+            ecc2 = F.relu(self.decc2(x / x_max))    # normalize between 0 and 1 for each data and channel
         else:
-            ecc_2 = F.relu(self.decc_2(x))
-        
-        x = torch.concat((x.flatten(1), ecc_1, ecc_2), dim=-1)
+            ecc2 = F.relu(self.decc2(x))
+
+        x = torch.concat((x.flatten(1), ecc1, ecc2), dim=-1)
         x = self.fc(x)
         return x
