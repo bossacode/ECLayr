@@ -85,10 +85,11 @@ class ECCnn(Cnn):
 class DECCnn(Cnn):
     def __init__(self, in_channels=1, num_classes=5, *args, **kwargs):
         super().__init__(in_channels, num_classes)
-        # self.decc1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=1000, postprocess=nn.Linear(kwargs["steps_1"], topo_out_units), *args, **kwargs)
+        # self.decc1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=10000, 
+        #                      postprocess=nn.Linear(kwargs["steps_1"], kwargs["topo_out"]), *args, **kwargs)
         self.eclayr1 = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
-        self.decc2 = CubDECC(interval=kwargs["interval_2"], sublevel=kwargs["sublevel_2"],
+        self.decc2 = CubDECC(interval=kwargs["interval_2"], sublevel=kwargs["sublevel_2"], lam=kwargs["lam_2"],
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
         self.fc = nn.Sequential(
             nn.Linear(784 + 2*kwargs["topo_out"], 64),
@@ -99,6 +100,7 @@ class DECCnn(Cnn):
 
     def forward(self, x):
         x, x_dtm = x
+        # ecc1 = F.relu(self.decc1(x_dtm))    # first DECC
         ecc1 = F.relu(self.eclayr1(x_dtm))  # first DECC (replaced with EClayr for computational reasons as the this layer does not require backpropagation)
         x = self.conv(x)                    # CNN
 

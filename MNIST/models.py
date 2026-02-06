@@ -83,7 +83,7 @@ class ECCnn(Cnn):
 class DECCnn(Cnn):
     def __init__(self, in_channels=1, num_classes=10, *args, **kwargs):
         super().__init__(in_channels, num_classes)
-        self.decc1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=1000,
+        self.decc1 = CubDECC(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"], lam=10000,
                                   postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
         # self.eclayr1 = CubECLayr(interval=kwargs["interval_1"], sublevel=kwargs["sublevel_1"],
         #                           postprocess=nn.Linear(kwargs["steps"], kwargs["topo_out"]), *args, **kwargs)
