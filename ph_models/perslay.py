@@ -6,13 +6,14 @@ import numpy as np
 
 
 class CubicalPerslay(tf.keras.layers.Layer):
-    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, k=2, rho=tf.identity,
+    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, k=2, dimensions=[0, 1], rho=tf.identity,
                  *args, **kwargs):
         super().__init__()
         self.sublevel = sublevel
         interval = interval if sublevel else [-i for i in reversed(interval)]
         self.t_min, self.t_max = interval
         self.k = k
+        self.dimensions = dimensions
 
         # set grid
         grid = np.random.uniform(1, 1, size=(10, 10)).astype(np.float32)
@@ -32,7 +33,7 @@ class CubicalPerslay(tf.keras.layers.Layer):
             for c in range(num_channels):
                 cub_cpx = gd.CubicalComplex(vertices=x[b, :, :, c])
                 diag = cub_cpx.persistence()
-                for dim in range(2):
+                for dim in self.dimensions:
                     dim_diag = np.array([pair[1] for pair in diag if pair[0] == dim and pair[1][0] > self.t_min and pair[1][1] < self.t_max], dtype=np.float32)
                     num_hom = len(dim_diag)         # number of homology features in dimension "dim"
                     if num_hom < self.k:            # concatenate zero arrays if there are less than k homology features
