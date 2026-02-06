@@ -10,8 +10,8 @@ model_params:
   - 0.14
   interval_2:
   - 0.05
-  - 0.95
-  steps: 16
+  - 0.75
+  steps: 64
   topo_out: 32
   sublevel_1: True
   sublevel_2: False
