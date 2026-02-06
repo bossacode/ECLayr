@@ -98,9 +98,9 @@ class PLCnn(Cnn):
         x = self.conv(x)                                                        # CNN
 
         # second PLLay after conv layer
-        max_vals = tf.reduce_max(x, axis=(1, 2), keepdims=True) # shape: (B, 1, 1, C)
-        if tf.reduce_all(max_vals != 0):
-            x_2  = x / max_vals     # normalize between 0 and 1 for each data and channel
+        x_max = tf.reduce_max(tf.stop_gradient(x), axis=(1, 2), keepdims=True)    # shape: (B, 1, 1, C)
+        if tf.reduce_all(x_max != 0):
+            x_2  = x / x_max     # normalize between 0 and 1 for each data and channel
             pl_2 = self.pllay_2(self.flatten(x_2 if self.sublevel_2 else - x_2))
             pl_2 = self.gtheta_2(self.flatten(pl_2))
         else:
