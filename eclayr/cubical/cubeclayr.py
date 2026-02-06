@@ -45,7 +45,7 @@ class ECCwrapper(Function):
 
 
 class CubECLayr(nn.Module):
-    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, beta=0.1, postprocess=nn.Identity(), device="cpu",
+    def __init__(self, interval=[0., 1.], steps=32, sublevel=True, beta="auto", postprocess=nn.Identity(), device="cpu",
                 *args, **kwargs):
         """
         Args:            
@@ -59,7 +59,7 @@ class CubECLayr(nn.Module):
         assert len(interval) == 2, "Interval must consist of two values."
         assert interval[1] > interval[0], "End point of the interval must be larger than the starting point."
         assert steps > 1, "Steps must be larger than 1."
-        assert beta == "auto" or isinstance(beta, (float, int)), "Beta must be either a number or 'auto'."
+        assert beta == "auto" or isinstance(beta, (float, int)), "beta must be either a number or 'auto'."
 
         super().__init__()
         self.interval = interval if sublevel else [-i for i in reversed(interval)] # change interval when superlevel set filtration is used
