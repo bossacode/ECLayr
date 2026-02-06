@@ -16,5 +16,5 @@ model_params:
   topo_out: 16
   sublevel_1: True
   sublevel_2: True
-  lam: 200
+  lam_2: 200
 threshold: 0.001
