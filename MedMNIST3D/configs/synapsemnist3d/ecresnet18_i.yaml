@@ -5,17 +5,12 @@ es_patience: 5
 lr: 0.001
 lr_topo: 0.001
 model_params:
-  # ECLayr/DECC params
-  interval_1:
-  - 0.01
-  - 0.99
-  interval_2:
-  - 0.2
-  - 0.8
+  # ECLayr params
+  interval:
+  - 0.05
+  - 0.95
   steps: 32
-  sublevel_1: False
-  sublevel_2: False
-  lam: 200.
+  sublevel: False
   postprocess_cfg:  # dimensions of postprocess layer
   - 64
   - 32

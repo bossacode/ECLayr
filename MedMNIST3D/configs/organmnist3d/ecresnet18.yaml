@@ -6,11 +6,16 @@ lr: 0.001
 lr_topo: 0.001
 model_params:
   # ECLayr params
-  interval:
-  - 0.01
-  - 0.99
+  interval_1:
+  - 0.05
+  - 0.95
+  interval_2:
+  - 0.05
+  - 0.85
   steps: 32
-  sublevel: False
+  sublevel_1: False
+  sublevel_2: False
+  beta: "auto"
   postprocess_cfg:  # dimensions of postprocess layer
   - 64
   - 32
